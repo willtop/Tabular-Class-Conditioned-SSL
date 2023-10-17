@@ -5,25 +5,28 @@ from torch.utils.data import Dataset
 
 # As a base class with random corruption, does not need targets
 class RandomCorruptDataset(Dataset):
-    def __init__(self, data, columns):
-        self.data = np.array(data)
-        self.columns = columns
+    def __init__(self, data):
+        assert isinstance(data, pd.DataFrame)
+        self.data = data 
 
     def __getitem__(self, index):
         # the dataset must return a pair of samples: the anchor and a random one from the
         # dataset that will be used to corrupt the anchor
-        sample = torch.tensor(self.data[index], dtype=torch.float)
+        sample = self.data.iloc[index]
 
         random_idx = np.random.randint(0, len(self))
-        random_sample = torch.tensor(self.data[random_idx], dtype=torch.float)
+        random_sample = self.data.iloc[random_idx]
 
         return sample, random_sample
 
     def __len__(self):
         return len(self.data)
 
-    def to_dataframe(self):
-        return pd.DataFrame(self.data, columns=self.columns)
+    def get_data(self):
+        return self.data
+    
+    def get_data_columns(self):
+        return self.data.columns
 
     @property
     def shape(self):
@@ -33,16 +36,16 @@ class RandomCorruptDataset(Dataset):
 # Can be used with both predicted classes: bootstrapping from semi-supervised learning;
 # or with oracle class labels
 class ClassCorruptDataset(RandomCorruptDataset):
-    def __init__(self, data, target, columns):
-        super().__init__(data, columns)
+    def __init__(self, data, target):
+        super().__init__(data)
         self.target = target
 
     def __getitem__(self, index):
         # Modification: the sample used to corrupt the anchor has to be from the same class
-        sample = torch.tensor(self.data[index], dtype=torch.float)
+        sample = self.data.iloc[index]
 
         candidate_idxes = np.where(self.target == self.target[index])[0]
         random_idx = np.random.choice(candidate_idxes)
-        random_sample = torch.tensor(self.data[random_idx], dtype=torch.float)
+        random_sample = self.data.iloc[random_idx]
         
         return sample, random_sample
