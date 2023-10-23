@@ -1,3 +1,5 @@
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -29,8 +31,6 @@ class Neural_Net(nn.Module):
         head_depth=2,
         corruption_rate=0.6,
         contrastive_loss_temperature=1.0,
-        encoder=None,
-        pretraining_head=None,
         model_device=None
     ):
         """Implementation of SCARF: Self-Supervised Contrastive Learning using Random Feature Corruption.
@@ -49,15 +49,9 @@ class Neural_Net(nn.Module):
         """
         super().__init__()
 
-        if encoder:
-            self.encoder = encoder
-        else:
-            self.encoder = MLP(input_dim, emb_dim, encoder_depth)
+        self.encoder = MLP(input_dim, emb_dim, encoder_depth)
 
-        if pretraining_head:
-            self.pretraining_head = pretraining_head
-        else:
-            self.pretraining_head = MLP(emb_dim, emb_dim, head_depth)
+        self.pretraining_head = MLP(emb_dim, emb_dim, head_depth)
 
         # initialize weights
         self.encoder.apply(self._init_weights)
@@ -70,36 +64,21 @@ class Neural_Net(nn.Module):
             print('Model requires a device to run on!')
             exit(1)
         self.device = model_device
+        print(f"Created a model with input dimension: {input_dim}")
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
             torch.nn.init.xavier_uniform_(module.weight)
             module.bias.data.fill_(0.01)
 
-    def forward(self, anchor, random_sample):
-        batch_size, m = anchor.size()
-
-        # 1: create a mask of size (batch size, m) where for each sample we set the
-        # jth column to True at random, such that corruption_len / m = corruption_rate
-        # 3: replace x_1_ij by x_2_ij where mask_ij is true to build x_corrupted
-
-        corruption_mask = torch.zeros_like(anchor, dtype=torch.bool)
-        for i in range(batch_size):
-            corruption_idx = torch.randperm(m)[: self.corruption_len]
-            corruption_mask[i, corruption_idx] = True
-
-        positive = torch.where(corruption_mask, random_sample, anchor)
-
+    def forward(self, input_batch):
         # compute embeddings
-        emb_anchor = self.encoder(anchor)
-        emb_anchor = self.pretraining_head(emb_anchor)
+        emb_batch = self.encoder(input_batch)
+        emb_batch = self.pretraining_head(emb_batch)
 
-        emb_positive = self.encoder(positive)
-        emb_positive = self.pretraining_head(emb_positive)
-
-        return emb_anchor, emb_positive
+        return emb_batch
     
-    def contrastive_loss(self, z_i, z_j):
+    def _contrastive_loss(self, z_i, z_j):
         """
         NT-Xent loss for contrastive learning using cosine distance as similarity metric as used in [SimCLR](https://arxiv.org/abs/2002.05709).
         Implementation adapted from https://theaisummer.com/simclr/#simclr-loss-implementation
@@ -135,40 +114,51 @@ class Neural_Net(nn.Module):
         return loss
 
     
-    def get_dataset_embeddings(self, loader):
+    def get_dataset_embedding(self, input, one_hot_encoder):
         self.eval()
-        embeddings = []
+        input = one_hot_encoder.transform(input)
 
         with torch.no_grad():
-            for anchor, _ in loader:
-                anchor = anchor.to(self.device)
-                embeddings.append(self.encoder(anchor))
+            input = torch.tensor(input, dtype=torch.float32).to(self.device)
+            embedding = self.encoder(input)
 
-        embeddings = torch.cat(embeddings).numpy()
+        return embedding.numpy()
 
-        return embeddings
     
-    def train_epoch(self, train_loader, optimizer):
+    def train_epoch(self, data_sampler, optimizer, one_hot_encoder):
         self.train()
         epoch_loss = 0.0
 
-        for anchor, positive in train_loader:
-            anchor, positive = anchor.to(self.device), positive.to(self.device)
+        for i in range(data_sampler.n_batches):
+            anchors, random_samples = data_sampler.sample_batch()
+            # firstly, corrupt on the original pandas dataframe
+            corruption_masks = np.zeros_like(anchors, dtype=bool)
+            for i in range(np.shape(anchors)[0]):
+                corruption_idxes = np.random.permutation(np.shape(anchors)[1])[:self.corruption_len]
+                corruption_masks[i, corruption_idxes] = True
+            anchors_corrupted = np.where(corruption_masks, random_samples, anchors)
+
+            anchors, anchors_corrupted = one_hot_encoder.transform(pd.DataFrame(data=anchors,columns=data_sampler.columns)), \
+                                        one_hot_encoder.transform(pd.DataFrame(data=anchors_corrupted,columns=data_sampler.columns))
+
+            anchors, anchors_corrupted = torch.tensor(anchors, dtype=torch.float32).to(self.device), \
+                                            torch.tensor(anchors_corrupted, dtype=torch.float32).to(self.device)
 
             # reset gradients
             optimizer.zero_grad()
 
             # get embeddings
-            emb_anchor, emb_positive = self(anchor, positive)
+            emb_anchors = self(anchors)
+            emb_corrupted = self(anchors_corrupted)
 
             # compute loss
-            loss = self.contrastive_loss(emb_anchor, emb_positive)
+            loss = self._contrastive_loss(emb_anchors, emb_corrupted)
             loss.backward()
 
             # update model weights
             optimizer.step()
 
             # log progress
-            epoch_loss += anchor.size(0) * loss.item()
+            epoch_loss += anchors.size(0) * loss.item()
 
-        return epoch_loss / len(train_loader.dataset)
+        return epoch_loss / len(data_sampler)

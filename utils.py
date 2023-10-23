@@ -24,33 +24,31 @@ def get_openml_classification(did):
     assert isinstance(X, pd.DataFrame) and isinstance(y, pd.Series)        
 
     order = np.arange(y.shape[0])
-    np.random.seed(13)
+    # Don't think need to re-seed here
     np.random.shuffle(order)
     X, y = X.iloc[order], y.iloc[order]
 
-    return X, y, list(np.where(categorical_indicator)[0]), attribute_names
+    # No need to keep categorical indicators and attribute names, as they can be readily obtained from pandas dataframe
+    return X, y
 
 def load_openml_list(dids):
     datasets = []
-    openml_list = openml.datasets.list_datasets(dids)
-    print(f'Number of datasets: {len(openml_list)}')
+    datasets_list = openml.datasets.list_datasets(dids, output_format='dataframe')
 
-    datalist = pd.DataFrame.from_dict(openml_list, orient="index")
-    datalist.head()
-    for ds in datalist.index:
-        entry = datalist.loc[ds]
+    for ds in datasets_list.index:
+        entry = datasets_list.loc[ds]
 
         print('Loading', entry['name'], entry.did, '..')
 
         if entry['NumberOfClasses'] == 0.0:
-            raise Exception("Regression not supported")
-            #X, y, categorical_feats, attribute_names = get_openml_regression(int(entry.did), max_samples)
+            raise Exception("Regression not supported for now")
+            exit(1)
         else:
-            X, y, categorical_feats, attribute_names = get_openml_classification(int(entry.did))
+            X, y = get_openml_classification(int(entry.did))
         if X is None:
             continue
 
-        datasets += [[entry['name'], X, y, categorical_feats, attribute_names]]
+        datasets += [[entry['name'], X, y]]
 
     return datasets
 
