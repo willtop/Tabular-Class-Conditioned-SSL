@@ -141,8 +141,8 @@ class Neural_Net(nn.Module):
             anchors, anchors_corrupted = one_hot_encoder.transform(pd.DataFrame(data=anchors,columns=data_sampler.columns)), \
                                         one_hot_encoder.transform(pd.DataFrame(data=anchors_corrupted,columns=data_sampler.columns))
 
-            anchors, anchors_corrupted = torch.tensor(anchors, dtype=torch.float32).to(self.device), \
-                                            torch.tensor(anchors_corrupted, dtype=torch.float32).to(self.device)
+            anchors, anchors_corrupted = torch.tensor(anchors.astype(float), dtype=torch.float32).to(self.device), \
+                                            torch.tensor(anchors_corrupted.astype(float), dtype=torch.float32).to(self.device)
 
             # reset gradients
             optimizer.zero_grad()

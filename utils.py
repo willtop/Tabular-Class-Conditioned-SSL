@@ -52,7 +52,7 @@ def load_openml_list(dids):
 
     return datasets
 
-def preprocess_datasets(train_data, valid_data, test_data):
+def preprocess_datasets(train_data, valid_data, test_data, normalize_numerical_features):
     assert isinstance(train_data, pd.DataFrame) and \
             isinstance(valid_data, pd.DataFrame) and \
              isinstance(test_data, pd.DataFrame)
@@ -85,14 +85,15 @@ def preprocess_datasets(train_data, valid_data, test_data):
                 valid_data[col].fillna(val_fill, inplace=True)
                 test_data[col].fillna(val_fill, inplace=True)
 
-    # z-score transform numerical values
-    scaler = StandardScaler()
-    non_categorical_columns = train_data.select_dtypes(exclude='category').columns
-    train_data[non_categorical_columns] = scaler.fit_transform(train_data[non_categorical_columns])
-    valid_data[non_categorical_columns] = scaler.transform(valid_data[non_categorical_columns])
-    test_data[non_categorical_columns] = scaler.transform(test_data[non_categorical_columns])
+    if normalize_numerical_features:
+        # z-score transform numerical values
+        scaler = StandardScaler()
+        non_categorical_columns = train_data.select_dtypes(exclude='category').columns
+        train_data[non_categorical_columns] = scaler.fit_transform(train_data[non_categorical_columns])
+        valid_data[non_categorical_columns] = scaler.transform(valid_data[non_categorical_columns])
+        test_data[non_categorical_columns] = scaler.transform(test_data[non_categorical_columns])
 
-    print(f"Data preprocess finished! Dropped {n_features_dropped} features")
+    print(f"Data preprocess finished! Dropped {n_features_dropped} features. {'Normalized numerical features.' if normalize_numerical_features else ''}")
     return
 
 def fit_one_hot_encoder(one_hot_encoder_raw, train_data):

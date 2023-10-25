@@ -5,17 +5,22 @@ from torch.utils.data import Dataset
 
 # As a base class with random corruption, does not need targets
 class RandomCorruptSampler(Dataset):
-    def __init__(self, data, batch_size):
+    def __init__(self, data, batch_size, target=None):
         assert isinstance(data, pd.DataFrame)
         self.data = np.array(data,dtype='object') 
         self.batch_size = batch_size
         self.columns = data.columns
         self.n_samples = np.shape(self.data)[0]
         self.n_batches = int(np.ceil(self.n_samples/batch_size))
-        self._initialize_epoch()
+        self.target = target
+        self.end_pointer = 0
 
     def _initialize_epoch(self):
-        np.random.shuffle(self.data)
+        perm = np.random.permutation(len(self))
+        self.data = self.data[perm]
+        # shuffle the target to align with data for class-based sampler
+        if isinstance(self.target, np.ndarray):
+            self.target = self.target[perm]
         self.end_pointer = 0
         return
 
@@ -60,8 +65,7 @@ class RandomCorruptSampler(Dataset):
 # or with oracle class labels
 class ClassCorruptSampler(RandomCorruptSampler):
     def __init__(self, data, batch_size, target):
-        super().__init__(data, batch_size)
-        self.target = target
+        super().__init__(data, batch_size, target)
 
     def _get_one_sample_pair(self, index):
         # Modification: the sample used to corrupt the anchor has to be from the same class
