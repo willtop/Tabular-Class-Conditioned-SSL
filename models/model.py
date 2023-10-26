@@ -8,7 +8,7 @@ import torch.nn.functional as F
 class MLP(torch.nn.Sequential):
     """Simple multi-layer perceptron with ReLu activation and optional dropout layer"""
 
-    def __init__(self, input_dim, hidden_dim, n_layers, dropout=0.0):
+    def __init__(self, input_dim, hidden_dim, output_dim, n_layers, dropout=0.0):
         layers = []
         in_dim = input_dim
         for _ in range(n_layers - 1):
@@ -17,7 +17,7 @@ class MLP(torch.nn.Sequential):
             layers.append(torch.nn.Dropout(dropout))
             in_dim = hidden_dim
 
-        layers.append(torch.nn.Linear(in_dim, hidden_dim))
+        layers.append(torch.nn.Linear(in_dim, output_dim))
 
         super().__init__(*layers)
 
@@ -27,11 +27,13 @@ class Neural_Net(nn.Module):
         self,
         input_dim,
         emb_dim,
+        output_dim,
+        model_device,
         encoder_depth=4,
-        head_depth=2,
+        pretrain_head_depth=2,
+        classification_head_depth = 2,
         corruption_rate=0.6,
-        contrastive_loss_temperature=1.0,
-        model_device=None
+        contrastive_loss_temperature=1.0
     ):
         """Implementation of SCARF: Self-Supervised Contrastive Learning using Random Feature Corruption.
         It consists in an encoder that learns the embeddings.
@@ -49,22 +51,20 @@ class Neural_Net(nn.Module):
         """
         super().__init__()
 
-        self.encoder = MLP(input_dim, emb_dim, encoder_depth)
-
-        self.pretraining_head = MLP(emb_dim, emb_dim, head_depth)
+        self.encoder = MLP(input_dim, emb_dim, emb_dim, encoder_depth)
+        self.pretraining_head = MLP(emb_dim, emb_dim, emb_dim, pretrain_head_depth)
+        self.classification_head = MLP(emb_dim, emb_dim, output_dim, classification_head_depth)
 
         # initialize weights
         self.encoder.apply(self._init_weights)
         self.pretraining_head.apply(self._init_weights)
+        self.classification_head.apply(self._init_weights)
 
         # initialize other hyper-parameters
         self.corruption_len = int(corruption_rate * input_dim)
         self.contrastive_loss_temperature = contrastive_loss_temperature
-        if not model_device:
-            print('Model requires a device to run on!')
-            exit(1)
         self.device = model_device
-        print(f"Created a model with input dimension: {input_dim}")
+        print(f"Created a model with input dimension: {input_dim}, embedding dimension {emb_dim}, and output dimension {output_dim}!")
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
@@ -78,7 +78,7 @@ class Neural_Net(nn.Module):
 
         return emb_batch
     
-    def _contrastive_loss(self, z_i, z_j):
+    def contrastive_loss(self, z_i, z_j):
         """
         NT-Xent loss for contrastive learning using cosine distance as similarity metric as used in [SimCLR](https://arxiv.org/abs/2002.05709).
         Implementation adapted from https://theaisummer.com/simclr/#simclr-loss-implementation
@@ -104,7 +104,7 @@ class Neural_Net(nn.Module):
         sim_ji = torch.diag(similarity, -batch_size)
         positives = torch.cat([sim_ij, sim_ji], dim=0)
 
-        mask = (~torch.eye(batch_size * 2, batch_size * 2, dtype=torch.bool)).float()
+        mask = (~torch.eye(batch_size * 2, batch_size * 2, dtype=torch.bool)).float().to(self.device)
         numerator = torch.exp(positives / self.contrastive_loss_temperature)
         denominator = mask * torch.exp(similarity / self.contrastive_loss_temperature)
 
@@ -114,51 +114,14 @@ class Neural_Net(nn.Module):
         return loss
 
     
-    def get_dataset_embedding(self, input, one_hot_encoder):
+    def get_middle_embedding(self, input):
         self.eval()
-        input = one_hot_encoder.transform(input)
 
         with torch.no_grad():
             input = torch.tensor(input, dtype=torch.float32).to(self.device)
             embedding = self.encoder(input)
 
-        return embedding.numpy()
+        return embedding.cpu().numpy()
+    
 
     
-    def train_epoch(self, data_sampler, optimizer, one_hot_encoder):
-        self.train()
-        epoch_loss = 0.0
-
-        for i in range(data_sampler.n_batches):
-            anchors, random_samples = data_sampler.sample_batch()
-            # firstly, corrupt on the original pandas dataframe
-            corruption_masks = np.zeros_like(anchors, dtype=bool)
-            for i in range(np.shape(anchors)[0]):
-                corruption_idxes = np.random.permutation(np.shape(anchors)[1])[:self.corruption_len]
-                corruption_masks[i, corruption_idxes] = True
-            anchors_corrupted = np.where(corruption_masks, random_samples, anchors)
-
-            anchors, anchors_corrupted = one_hot_encoder.transform(pd.DataFrame(data=anchors,columns=data_sampler.columns)), \
-                                        one_hot_encoder.transform(pd.DataFrame(data=anchors_corrupted,columns=data_sampler.columns))
-
-            anchors, anchors_corrupted = torch.tensor(anchors.astype(float), dtype=torch.float32).to(self.device), \
-                                            torch.tensor(anchors_corrupted.astype(float), dtype=torch.float32).to(self.device)
-
-            # reset gradients
-            optimizer.zero_grad()
-
-            # get embeddings
-            emb_anchors = self(anchors)
-            emb_corrupted = self(anchors_corrupted)
-
-            # compute loss
-            loss = self._contrastive_loss(emb_anchors, emb_corrupted)
-            loss.backward()
-
-            # update model weights
-            optimizer.step()
-
-            # log progress
-            epoch_loss += anchors.size(0) * loss.item()
-
-        return epoch_loss / len(data_sampler)

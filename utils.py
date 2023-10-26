@@ -58,14 +58,14 @@ def preprocess_datasets(train_data, valid_data, test_data, normalize_numerical_f
              isinstance(test_data, pd.DataFrame)
     assert np.all(train_data.columns == valid_data.columns) and \
             np.all(valid_data.columns == test_data.columns)
-    n_features_dropped = 0
+    features_dropped = []
     for col in train_data.columns:
         # drop columns with all null values or with a constant value on training data
         if train_data[col].isnull().all() or train_data[col].nunique() == 1:
             train_data.drop(columns=col, inplace=True)
             valid_data.drop(columns=col, inplace=True)
             test_data.drop(columns=col, inplace=True)
-            n_features_dropped += 1
+            features_dropped.append(col)
             continue
         # fill the missing values
         if train_data[col].isnull().any() or \
@@ -93,7 +93,7 @@ def preprocess_datasets(train_data, valid_data, test_data, normalize_numerical_f
         valid_data[non_categorical_columns] = scaler.transform(valid_data[non_categorical_columns])
         test_data[non_categorical_columns] = scaler.transform(test_data[non_categorical_columns])
 
-    print(f"Data preprocess finished! Dropped {n_features_dropped} features. {'Normalized numerical features.' if normalize_numerical_features else ''}")
+    print(f"Data preprocess finished! Dropped {len(features_dropped)} features: {features_dropped}. {'Normalized numerical features.' if normalize_numerical_features else ''}")
     return
 
 def fit_one_hot_encoder(one_hot_encoder_raw, train_data):
