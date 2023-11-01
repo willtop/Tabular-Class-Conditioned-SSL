@@ -71,12 +71,31 @@ class Neural_Net(nn.Module):
             torch.nn.init.xavier_uniform_(module.weight)
             module.bias.data.fill_(0.01)
 
-    def forward(self, input_batch):
-        # compute embeddings
+    
+    def get_middle_embedding(self, input_batch):
         emb_batch = self.encoder(input_batch)
+
+        return emb_batch
+    
+    def get_final_embedding(self, input_batch):
+        # compute middle embeddings first
+        emb_batch = self.get_middle_embedding(input_batch)
         emb_batch = self.pretraining_head(emb_batch)
 
         return emb_batch
+    
+    def get_classification_predictions(self, input_batch):
+        # compute middle embeddings first
+        emb_batch = self.get_middle_embedding(input_batch)
+        # With pytorch's cross-entropy loss, only logits are required from the neural net
+        predictions_batch = self.classification_head(emb_batch)
+
+        return predictions_batch
+
+    def freeze_encoder(self):
+        self.encoder.requires_grad_(False)
+        return
+
     
     def contrastive_loss(self, z_i, z_j):
         """
@@ -113,15 +132,8 @@ class Neural_Net(nn.Module):
 
         return loss
 
-    
-    def get_middle_embedding(self, input):
-        self.eval()
-
-        with torch.no_grad():
-            input = torch.tensor(input, dtype=torch.float32).to(self.device)
-            embedding = self.encoder(input)
-
-        return embedding.cpu().numpy()
+    def classification_loss(self, preds, targets):
+        return F.cross_entropy(input=preds, target=targets, reduction='mean')
     
 
     

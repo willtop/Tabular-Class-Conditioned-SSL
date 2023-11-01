@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn.functional as F
 
 def train_contrastive_loss_epoch(model, data_sampler, optimizer, one_hot_encoder, device):
     model.train()
@@ -25,8 +26,8 @@ def train_contrastive_loss_epoch(model, data_sampler, optimizer, one_hot_encoder
         optimizer.zero_grad()
 
         # get embeddings
-        emb_final_anchors = model(anchors)
-        emb_final_corrupted = model(anchors_corrupted)
+        emb_final_anchors = model.get_final_embedding(anchors)
+        emb_final_corrupted = model.get_final_embedding(anchors_corrupted)
 
         # compute loss
         loss = model.contrastive_loss(emb_final_anchors, emb_final_corrupted)
@@ -40,5 +41,35 @@ def train_contrastive_loss_epoch(model, data_sampler, optimizer, one_hot_encoder
 
     return epoch_loss / len(data_sampler)
 
-def train_classification_epoch(model, data_sampler, optimizer, one_hot_encoder):
-    return 0
+def train_classification_epoch(model, data_sampler, optimizer, one_hot_encoder, device):
+    model.train()
+    epoch_loss = 0.0
+
+    for i in range(data_sampler.n_batches):
+        inputs, targets = data_sampler.sample_batch()
+        
+
+        inputs = one_hot_encoder.transform(pd.DataFrame(data=inputs,columns=data_sampler.columns))
+
+        inputs = torch.tensor(inputs.astype(float), dtype=torch.float32).to(device)
+        # seemingly int64 is often used as the type for indices
+        targets = torch.tensor(targets.astype(float), dtype=torch.int64).to(device)
+
+        # reset gradients
+        optimizer.zero_grad()
+
+        # get classification predictions
+        preds = model.get_classification_predictions(inputs)
+
+        # compute loss
+        loss = model.classification_loss(preds, targets)
+        loss.backward()
+
+        # update model weights
+        optimizer.step()
+
+        # log progress
+        epoch_loss += loss.item()
+
+    return epoch_loss / data_sampler.n_batches
+ 

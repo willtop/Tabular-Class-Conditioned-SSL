@@ -3,17 +3,16 @@ import torch
 import pandas as pd
 from torch.utils.data import Dataset
 
-# As a base class with random corruption, does not need targets
-class RandomCorruptSampler(Dataset):
-    def __init__(self, data, batch_size, target=None):
+class BasicSampler():
+    def __init__(self, data, batch_size, target):
         assert isinstance(data, pd.DataFrame)
         self.data = np.array(data,dtype='object') 
+        self.target = target
         self.batch_size = batch_size
         self.columns = data.columns
         self.n_samples = np.shape(self.data)[0]
         self.n_batches = int(np.ceil(self.n_samples/batch_size))
-        self.target = target
-        self.end_pointer = 0
+        self.batch_end_pointer = 0
 
     def _initialize_epoch(self):
         perm = np.random.permutation(len(self))
@@ -21,11 +20,45 @@ class RandomCorruptSampler(Dataset):
         # shuffle the target to align with data for class-based sampler
         if isinstance(self.target, np.ndarray):
             self.target = self.target[perm]
-        self.end_pointer = 0
+        self.batch_end_pointer = 0
         return
 
     def __len__(self):
         return np.shape(self.data)[0]
+
+    # To be overwritten by subclasses for its own needs
+    def _get_one_sample_pair(self):
+        raise NotImplementedError
+    
+    def sample_batch(self):
+        data_batch_1, data_batch_2 = [], []
+        new_batch_end_pointer = min(self.batch_end_pointer + self.batch_size, self.n_samples)
+        for i in range(self.batch_end_pointer, new_batch_end_pointer):
+            data_1, data_2 = self._get_one_sample_pair(i)
+            data_batch_1.append(data_1)
+            data_batch_2.append(data_2)
+        if new_batch_end_pointer == self.n_samples:
+            self._initialize_epoch()
+        else:
+            self.batch_end_pointer = new_batch_end_pointer
+    
+        return np.array(data_batch_1, dtype='object'), np.array(data_batch_2, dtype='object')
+    
+    def get_data(self):
+        return self.data
+    
+    def get_data_columns(self):
+        return self.columns
+    
+    @property
+    def shape(self):
+        return self.data.shape
+
+
+# As a base class with random corruption, does not need targets
+class RandomCorruptSampler(BasicSampler):
+    def __init__(self, data, batch_size, target=None):
+        super().__init__(data, batch_size, target)        
                              
     def _get_one_sample_pair(self, index):
         # the dataset must return a pair of samples: the anchor and a random one from the
@@ -36,30 +69,8 @@ class RandomCorruptSampler(Dataset):
         random_sample = self.data[random_idx]
 
         return sample, random_sample
-
-    def sample_batch(self):
-        anchors, random_samples = [], []
-        new_end_pointer = min(self.end_pointer + self.batch_size, self.n_samples)
-        for i in range(self.end_pointer, new_end_pointer):
-            anchor, random_sample = self._get_one_sample_pair(i)
-            anchors.append(anchor)
-            random_samples.append(random_sample)
-        if new_end_pointer == self.n_samples:
-            self._initialize_epoch()
-        else:
-            self.end_pointer = new_end_pointer
-        return np.array(anchors, dtype='object'), np.array(random_samples, dtype='object')
-
-    def get_data(self):
-        return self.data
     
-    def get_data_columns(self):
-        return self.columns
 
-    @property
-    def shape(self):
-        return self.data.shape
-    
 
 # Can be used with both predicted classes: bootstrapping from semi-supervised learning;
 # or with oracle class labels
@@ -67,8 +78,8 @@ class ClassCorruptSampler(RandomCorruptSampler):
     def __init__(self, data, batch_size, target):
         super().__init__(data, batch_size, target)
 
+    # Modification: the sample used to corrupt the anchor has to be from the same class
     def _get_one_sample_pair(self, index):
-        # Modification: the sample used to corrupt the anchor has to be from the same class
         sample = self.data[index]
 
         candidate_idxes = np.where(self.target == self.target[index])[0]
@@ -76,3 +87,17 @@ class ClassCorruptSampler(RandomCorruptSampler):
         random_sample = self.data[random_idx]
         
         return sample, random_sample
+    
+
+    
+# Used for supervised learning
+class SupervisedSampler(BasicSampler):
+    def __init__(self, data, batch_size, target):
+        super().__init__(data, batch_size, target)
+    
+    # Supervised learning setting: sample a (data, target) pair
+    def _get_one_sample_pair(self, index):
+        data_single = self.data[index]
+        target_single = self.target[index]
+        return data_single, target_single
+    
