@@ -31,7 +31,7 @@ class Neural_Net(nn.Module):
         model_device,
         encoder_depth=4,
         pretrain_head_depth=2,
-        classification_head_depth = 2,
+        classification_head_depth=2,
         corruption_rate=0.6,
         contrastive_loss_temperature=1.0
     ):
@@ -84,7 +84,7 @@ class Neural_Net(nn.Module):
 
         return emb_batch
     
-    def get_classification_predictions(self, input_batch):
+    def get_classification_prediction_logits(self, input_batch):
         # compute middle embeddings first
         emb_batch = self.get_middle_embedding(input_batch)
         # With pytorch's cross-entropy loss, only logits are required from the neural net
@@ -132,8 +132,8 @@ class Neural_Net(nn.Module):
 
         return loss
 
-    def classification_loss(self, preds, targets):
-        return F.cross_entropy(input=preds, target=targets, reduction='mean')
+    def classification_loss(self, pred_logits, targets):
+        return F.cross_entropy(input=pred_logits, target=targets, reduction='mean')
     
 
     

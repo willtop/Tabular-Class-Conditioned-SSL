@@ -59,10 +59,10 @@ def train_classification_epoch(model, data_sampler, optimizer, one_hot_encoder, 
         optimizer.zero_grad()
 
         # get classification predictions
-        preds = model.get_classification_predictions(inputs)
+        pred_logits = model.get_classification_prediction_logits(inputs)
 
         # compute loss
-        loss = model.classification_loss(preds, targets)
+        loss = model.classification_loss(pred_logits, targets)
         loss.backward()
 
         # update model weights
