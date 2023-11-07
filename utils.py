@@ -29,6 +29,7 @@ def get_openml_classification(did):
     X, y = X.iloc[order], y.iloc[order]
 
     # No need to keep categorical indicators and attribute names, as they can be readily obtained from pandas dataframe
+    print(f"Dataset with did {did} has {sum(categorical_indicator)}/{len(attribute_names)} categorical features.")
     return X, y
 
 def load_openml_list(dids):
