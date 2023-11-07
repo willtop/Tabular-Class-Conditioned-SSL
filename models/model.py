@@ -8,13 +8,13 @@ import torch.nn.functional as F
 class MLP(torch.nn.Sequential):
     """Simple multi-layer perceptron with ReLu activation and optional dropout layer"""
 
-    def __init__(self, input_dim, hidden_dim, output_dim, n_layers, dropout=0.0):
+    def __init__(self, input_dim, hidden_dim, output_dim, n_layers, dropout_prob):
         layers = []
         in_dim = input_dim
         for _ in range(n_layers - 1):
             layers.append(torch.nn.Linear(in_dim, hidden_dim))
             layers.append(nn.ReLU(inplace=True))
-            layers.append(torch.nn.Dropout(dropout))
+            layers.append(torch.nn.Dropout(dropout_prob))
             in_dim = hidden_dim
 
         layers.append(torch.nn.Linear(in_dim, output_dim))
@@ -33,7 +33,8 @@ class Neural_Net(nn.Module):
         pretrain_head_depth=2,
         classification_head_depth=2,
         corruption_rate=0.6,
-        contrastive_loss_temperature=1.0
+        contrastive_loss_temperature=1.0,
+        dropout_prob=0.0
     ):
         """Implementation of SCARF: Self-Supervised Contrastive Learning using Random Feature Corruption.
         It consists in an encoder that learns the embeddings.
@@ -51,9 +52,9 @@ class Neural_Net(nn.Module):
         """
         super().__init__()
 
-        self.encoder = MLP(input_dim, emb_dim, emb_dim, encoder_depth)
-        self.pretraining_head = MLP(emb_dim, emb_dim, emb_dim, pretrain_head_depth)
-        self.classification_head = MLP(emb_dim, emb_dim, output_dim, classification_head_depth)
+        self.encoder = MLP(input_dim, emb_dim, emb_dim, encoder_depth, dropout_prob)
+        self.pretraining_head = MLP(emb_dim, emb_dim, emb_dim, pretrain_head_depth, dropout_prob)
+        self.classification_head = MLP(emb_dim, emb_dim, output_dim, classification_head_depth, dropout_prob)
 
         # initialize weights
         self.encoder.apply(self._init_weights)
