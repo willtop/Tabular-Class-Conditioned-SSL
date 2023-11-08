@@ -90,9 +90,12 @@ def preprocess_datasets(train_data, valid_data, test_data, normalize_numerical_f
         # z-score transform numerical values
         scaler = StandardScaler()
         non_categorical_columns = train_data.select_dtypes(exclude='category').columns
-        train_data[non_categorical_columns] = scaler.fit_transform(train_data[non_categorical_columns])
-        valid_data[non_categorical_columns] = scaler.transform(valid_data[non_categorical_columns])
-        test_data[non_categorical_columns] = scaler.transform(test_data[non_categorical_columns])
+        if len(non_categorical_columns) == 0:
+            print("No numerical features present! Skip numerical z-score normalization.")
+        else:
+            train_data[non_categorical_columns] = scaler.fit_transform(train_data[non_categorical_columns])
+            valid_data[non_categorical_columns] = scaler.transform(valid_data[non_categorical_columns])
+            test_data[non_categorical_columns] = scaler.transform(test_data[non_categorical_columns])
 
     print(f"Data preprocess finished! Dropped {len(features_dropped)} features: {features_dropped}. {'Normalized numerical features.' if normalize_numerical_features else ''}")
     return
