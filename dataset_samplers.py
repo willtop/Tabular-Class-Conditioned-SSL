@@ -14,6 +14,12 @@ class BasicSampler():
         self.n_batches = int(np.ceil(self.n_samples/batch_size))
         self.batch_end_pointer = 0
 
+    def __len__(self):
+        return np.shape(self.data)[0]
+
+    def __str__(self):
+        return f"A BasicSampler object, with datasize {len(self)}."
+
     def _initialize_epoch(self):
         perm = np.random.permutation(len(self))
         self.data = self.data[perm]
@@ -22,9 +28,6 @@ class BasicSampler():
             self.target = self.target[perm]
         self.batch_end_pointer = 0
         return
-
-    def __len__(self):
-        return np.shape(self.data)[0]
 
     # To be overwritten by subclasses for its own needs
     def _get_one_sample_pair(self):
@@ -50,6 +53,7 @@ class BasicSampler():
     def get_data_columns(self):
         return self.columns
     
+    
     @property
     def shape(self):
         return self.data.shape
@@ -59,6 +63,9 @@ class BasicSampler():
 class RandomCorruptSampler(BasicSampler):
     def __init__(self, data, batch_size, target=None):
         super().__init__(data, batch_size, target)        
+
+    def __str__(self):
+        return f"A RandomCorruptSampler object, with datasize {len(self)}."
                              
     def _get_one_sample_pair(self, index):
         # the dataset must return a pair of samples: the anchor and a random one from the
@@ -78,6 +85,9 @@ class ClassCorruptSampler(RandomCorruptSampler):
     def __init__(self, data, batch_size, target):
         super().__init__(data, batch_size, target)
 
+    def __str__(self):
+        return f"A ClassCorruptSampler object, with datasize {len(self)}."
+
     # Modification: the sample used to corrupt the anchor has to be from the same class
     def _get_one_sample_pair(self, index):
         sample = self.data[index]
@@ -94,6 +104,9 @@ class ClassCorruptSampler(RandomCorruptSampler):
 class SupervisedSampler(BasicSampler):
     def __init__(self, data, batch_size, target):
         super().__init__(data, batch_size, target)
+
+    def __str__(self):
+        return f"A SupervisedSampler object, with datasize {len(self)}."
     
     # Supervised learning setting: sample a (data, target) pair
     def _get_one_sample_pair(self, index):
