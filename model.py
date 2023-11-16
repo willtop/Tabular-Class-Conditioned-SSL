@@ -28,7 +28,7 @@ class Neural_Net(nn.Module):
         input_dim,
         emb_dim,
         output_dim,
-        model_device,
+        model_DEVICE,
         encoder_depth=4,
         pretrain_head_depth=2,
         classification_head_depth=2,
@@ -64,8 +64,8 @@ class Neural_Net(nn.Module):
         # initialize other hyper-parameters
         self.corruption_len = int(corruption_rate * input_dim)
         self.contrastive_loss_temperature = contrastive_loss_temperature
-        self.device = model_device
-        print(f"Created a model with input dimension: {input_dim}, embedding dimension {emb_dim}, and output dimension {output_dim}!")
+        self.DEVICE = model_DEVICE
+        
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
@@ -114,22 +114,22 @@ class Neural_Net(nn.Module):
         Returns:
             float: loss
         """
-        batch_size = z_i.size(0)
+        BATCH_SIZE = z_i.size(0)
 
         # compute similarity between the sample's embedding and its corrupted view
         z = torch.cat([z_i, z_j], dim=0)
         similarity = F.cosine_similarity(z.unsqueeze(1), z.unsqueeze(0), dim=2)
 
-        sim_ij = torch.diag(similarity, batch_size)
-        sim_ji = torch.diag(similarity, -batch_size)
+        sim_ij = torch.diag(similarity, BATCH_SIZE)
+        sim_ji = torch.diag(similarity, -BATCH_SIZE)
         positives = torch.cat([sim_ij, sim_ji], dim=0)
 
-        mask = (~torch.eye(batch_size * 2, batch_size * 2, dtype=torch.bool)).float().to(self.device)
+        mask = (~torch.eye(BATCH_SIZE * 2, BATCH_SIZE * 2, dtype=torch.bool)).float().to(self.DEVICE)
         numerator = torch.exp(positives / self.contrastive_loss_temperature)
         denominator = mask * torch.exp(similarity / self.contrastive_loss_temperature)
 
         all_losses = -torch.log(numerator / torch.sum(denominator, dim=1))
-        loss = torch.sum(all_losses) / (2 * batch_size)
+        loss = torch.sum(all_losses) / (2 * BATCH_SIZE)
 
         return loss
 

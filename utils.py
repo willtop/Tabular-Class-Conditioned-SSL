@@ -32,9 +32,9 @@ def get_openml_classification(did):
     print(f"Dataset with did {did} has {sum(categorical_indicator)}/{len(attribute_names)} categorical features.")
     return X, y
 
-def load_openml_list(dids):
+def load_openml_list(DIDS):
     datasets = []
-    datasets_list = openml.datasets.list_datasets(dids, output_format='dataframe')
+    datasets_list = openml.datasets.list_datasets(DIDS, output_format='dataframe')
 
     for ds in datasets_list.index:
         entry = datasets_list.loc[ds]
@@ -106,10 +106,10 @@ def fit_one_hot_encoder(one_hot_encoder_raw, train_data):
     one_hot_encoder.fit(train_data)
     return one_hot_encoder
 
-def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled, one_hot_encoder, device):
+def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled, one_hot_encoder, DEVICE):
     # use the classifier to predict for all data first
     classifier_model.eval()
     with torch.no_grad():
-        pred_logits = classifier_model.get_classification_prediction_logits(torch.tensor(one_hot_encoder.transform(data),dtype=torch.float32).to(device)).cpu().numpy()
+        pred_logits = classifier_model.get_classification_prediction_logits(torch.tensor(one_hot_encoder.transform(data),dtype=torch.float32).to(DEVICE)).cpu().numpy()
     preds = np.argmax(pred_logits, axis=1)
     return np.where(mask_labeled, targets, preds)

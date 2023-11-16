@@ -4,8 +4,8 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
-def train_contrastive_loss(model, data_sampler, optimizer, one_hot_encoder, device, min_epochs, early_stopping):
-    n_epochs = 1_000 # according to SCARF paper
+def train_contrastive_loss(model, data_sampler, optimizer, one_hot_encoder, DEVICE, min_epochs, early_stopping):
+    n_epochs = 1000 # according to SCARF paper
     early_stopping_patience = 3
     train_losses, valid_losses = [], []
 
@@ -25,8 +25,8 @@ def train_contrastive_loss(model, data_sampler, optimizer, one_hot_encoder, devi
             anchors, anchors_corrupted = one_hot_encoder.transform(pd.DataFrame(data=anchors,columns=data_sampler['train'].columns)), \
                                         one_hot_encoder.transform(pd.DataFrame(data=anchors_corrupted,columns=data_sampler['train'].columns))
 
-            anchors, anchors_corrupted = torch.tensor(anchors.astype(float), dtype=torch.float32).to(device), \
-                                            torch.tensor(anchors_corrupted.astype(float), dtype=torch.float32).to(device)
+            anchors, anchors_corrupted = torch.tensor(anchors.astype(float), dtype=torch.float32).to(DEVICE), \
+                                            torch.tensor(anchors_corrupted.astype(float), dtype=torch.float32).to(DEVICE)
 
             # reset gradients
             optimizer.zero_grad()
@@ -62,8 +62,8 @@ def train_contrastive_loss(model, data_sampler, optimizer, one_hot_encoder, devi
                 anchors, anchors_corrupted = one_hot_encoder.transform(pd.DataFrame(data=anchors,columns=data_sampler['valid'].columns)), \
                                             one_hot_encoder.transform(pd.DataFrame(data=anchors_corrupted,columns=data_sampler['valid'].columns))
 
-                anchors, anchors_corrupted = torch.tensor(anchors.astype(float), dtype=torch.float32).to(device), \
-                                                torch.tensor(anchors_corrupted.astype(float), dtype=torch.float32).to(device)
+                anchors, anchors_corrupted = torch.tensor(anchors.astype(float), dtype=torch.float32).to(DEVICE), \
+                                                torch.tensor(anchors_corrupted.astype(float), dtype=torch.float32).to(DEVICE)
 
                 # get embeddings
                 emb_final_anchors = model.get_final_embedding(anchors)
@@ -88,7 +88,7 @@ def train_contrastive_loss(model, data_sampler, optimizer, one_hot_encoder, devi
 
     return train_losses, valid_losses
 
-def train_classification(model, data_sampler, optimizer, one_hot_encoder, device, min_epochs, early_stopping):
+def train_classification(model, data_sampler, optimizer, one_hot_encoder, DEVICE, min_epochs, early_stopping):
     n_epochs = 200 # according to SCARF paper
     early_stopping_patience = 3
     train_losses, valid_losses = [], []
@@ -102,9 +102,9 @@ def train_classification(model, data_sampler, optimizer, one_hot_encoder, device
 
             inputs = one_hot_encoder.transform(pd.DataFrame(data=inputs,columns=data_sampler['train'].columns))
 
-            inputs = torch.tensor(inputs.astype(float), dtype=torch.float32).to(device)
+            inputs = torch.tensor(inputs.astype(float), dtype=torch.float32).to(DEVICE)
             # seemingly int64 is often used as the type for indices
-            targets = torch.tensor(targets.astype(float), dtype=torch.int64).to(device)
+            targets = torch.tensor(targets.astype(float), dtype=torch.int64).to(DEVICE)
 
             # reset gradients
             optimizer.zero_grad()
@@ -133,9 +133,9 @@ def train_classification(model, data_sampler, optimizer, one_hot_encoder, device
                 
                 inputs = one_hot_encoder.transform(pd.DataFrame(data=inputs,columns=data_sampler['valid'].columns))
 
-                inputs = torch.tensor(inputs.astype(float), dtype=torch.float32).to(device)
+                inputs = torch.tensor(inputs.astype(float), dtype=torch.float32).to(DEVICE)
                 # seemingly int64 is often used as the type for indices
-                targets = torch.tensor(targets.astype(float), dtype=torch.int64).to(device)
+                targets = torch.tensor(targets.astype(float), dtype=torch.int64).to(DEVICE)
                     
                 # get classification predictions
                 pred_logits = model.get_classification_prediction_logits(inputs)
