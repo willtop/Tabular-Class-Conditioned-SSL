@@ -1,0 +1,8 @@
+Dataset: cmc
+no_pretrain accuracy avg 48.249; std 2.402rand_corr accuracy avg 47.853; std 2.859cls_corr accuracy avg 49.322; std 1.487orc_corr accuracy avg 50.847; std 3.094cluster_corr accuracy avg 49.040; std 2.786
+Dataset: GesturePhaseSegmentationProcessed
+no_pretrain accuracy avg 53.764; std 0.609rand_corr accuracy avg 52.852; std 0.812cls_corr accuracy avg 55.840; std 0.979orc_corr accuracy avg 64.785; std 1.377cluster_corr accuracy avg 53.679; std 1.004
+Dataset: cylinder-bands
+no_pretrain accuracy avg 69.444; std 4.141rand_corr accuracy avg 68.673; std 3.090cls_corr accuracy avg 68.519; std 4.071orc_corr accuracy avg 77.623; std 1.806cluster_corr accuracy avg 69.907; std 1.832
+Dataset: car
+no_pretrain accuracy avg 92.919; std 0.955rand_corr accuracy avg 92.775; std 1.836cls_corr accuracy avg 92.245; std 1.560orc_corr accuracy avg 97.784; std 0.570cluster_corr accuracy avg 91.329; std 0.883

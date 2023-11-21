@@ -1,2 +1,0 @@
-Dataset: cmc
-no_pretrain accuracy avg 47.458; std 0.000rand_corr accuracy avg 44.068; std 0.000cls_corr accuracy avg 46.441; std 0.000orc_corr accuracy avg 45.424; std 0.000cluster_corr accuracy avg 42.034; std 0.000
