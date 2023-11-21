@@ -6,3 +6,5 @@ Dataset: cylinder-bands
 no_pretrain accuracy avg 69.444; std 4.141rand_corr accuracy avg 68.673; std 3.090cls_corr accuracy avg 68.519; std 4.071orc_corr accuracy avg 77.623; std 1.806cluster_corr accuracy avg 69.907; std 1.832
 Dataset: car
 no_pretrain accuracy avg 92.919; std 0.955rand_corr accuracy avg 92.775; std 1.836cls_corr accuracy avg 92.245; std 1.560orc_corr accuracy avg 97.784; std 0.570cluster_corr accuracy avg 91.329; std 0.883
+Dataset: vehicle
+no_pretrain accuracy avg 72.941; std 3.168rand_corr accuracy avg 75.392; std 2.528cls_corr accuracy avg 72.843; std 2.949orc_corr accuracy avg 75.784; std 1.096cluster_corr accuracy avg 73.039; std 2.077

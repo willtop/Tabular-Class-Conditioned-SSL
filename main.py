@@ -35,9 +35,9 @@ FREEZE_PRETRAINED_ENCODER = False
 
 FRACTION_LABELED = 0.25
 BATCH_SIZE = 128
-#DIDS = [23, 4538, 6332, 40975]
-DIDS = [54, 40923, 40668, 1475]
-SEEDS = [614579, 336466, 974761, 450967, 743562, 767734, 139760, 251489, 698130, 591824]
+#DIDS = [23, 54, 4538, 6332, 40975]
+DIDS = [40923]
+SEEDS = [614579, 336466] #, 974761, 450967, 743562, 767734]
 METHODS = ['no_pretrain', 'rand_corr', 'cls_corr', 'orc_corr', 'cluster_corr']
 
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     open(res_file, "w").close()
 
     # OpenML dataset
-    datasets = load_openml_list([23, 4538, 6332, 40975])
+    datasets = load_openml_list(DIDS)
 
     for i in range(len(DIDS)):
         dataset = datasets[i]
