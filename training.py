@@ -4,8 +4,8 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
-def train_contrastive_loss(model, data_sampler, optimizer, one_hot_encoder, DEVICE, min_epochs, early_stopping):
-    n_epochs = 1000 # according to SCARF paper
+def train_contrastive_loss(model, data_sampler, mask_generator, optimizer, one_hot_encoder, DEVICE, min_epochs, early_stopping):
+    n_epochs = 200 # according to SCARF paper
     early_stopping_patience = 3
     train_losses, valid_losses = [], []
 
@@ -16,10 +16,8 @@ def train_contrastive_loss(model, data_sampler, optimizer, one_hot_encoder, DEVI
         for j in range(data_sampler['train'].n_batches):
             anchors, random_samples = data_sampler['train'].sample_batch()
             # firstly, corrupt on the original pandas dataframe
-            corruption_masks = np.zeros_like(anchors, dtype=bool)
-            for k in range(np.shape(anchors)[0]):
-                corruption_idxes = np.random.permutation(np.shape(anchors)[1])[:model.corruption_len]
-                corruption_masks[k, corruption_idxes] = True
+            corruption_masks = mask_generator.get_masks(np.shape(anchors)[0])
+            assert np.shape(anchors) == np.shape(corruption_masks)
             anchors_corrupted = np.where(corruption_masks, random_samples, anchors)
 
             anchors, anchors_corrupted = one_hot_encoder.transform(pd.DataFrame(data=anchors,columns=data_sampler['train'].columns)), \

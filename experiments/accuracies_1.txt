@@ -8,3 +8,5 @@ Dataset: car
 no_pretrain accuracy avg 92.919; std 0.955rand_corr accuracy avg 92.775; std 1.836cls_corr accuracy avg 92.245; std 1.560orc_corr accuracy avg 97.784; std 0.570cluster_corr accuracy avg 91.329; std 0.883
 Dataset: vehicle
 no_pretrain accuracy avg 72.941; std 3.168rand_corr accuracy avg 75.392; std 2.528cls_corr accuracy avg 72.843; std 2.949orc_corr accuracy avg 75.784; std 1.096cluster_corr accuracy avg 73.039; std 2.077
+Dataset: Devnagari-Script
+no_pretrain accuracy avg 86.739; std 0.000rand_corr accuracy avg 83.011; std 0.000cls_corr accuracy avg 86.071; std 0.000orc_corr accuracy avg 87.908; std 0.000cluster_corr accuracy avg 56.332; std 0.000

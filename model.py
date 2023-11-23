@@ -32,7 +32,6 @@ class Neural_Net(nn.Module):
         encoder_depth=4,
         pretrain_head_depth=2,
         classification_head_depth=2,
-        corruption_rate=0.6,
         contrastive_loss_temperature=1.0,
         dropout_prob=0.0
     ):
@@ -62,10 +61,9 @@ class Neural_Net(nn.Module):
         self.classification_head.apply(self._init_weights)
 
         # initialize other hyper-parameters
-        self.corruption_len = int(corruption_rate * input_dim)
         self.contrastive_loss_temperature = contrastive_loss_temperature
         self.DEVICE = model_DEVICE
-        
+
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):

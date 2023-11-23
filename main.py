@@ -35,9 +35,9 @@ FREEZE_PRETRAINED_ENCODER = False
 
 FRACTION_LABELED = 0.25
 BATCH_SIZE = 128
-#DIDS = [23, 54, 4538, 6332, 40975]
-DIDS = [40923]
-SEEDS = [614579, 336466] #, 974761, 450967, 743562, 767734]
+DIDS = [23, 54, 4538, 6332, 40975]
+#DIDS = [40923] # super large dataset, SCARF paper presents results way off
+SEEDS = [614579, 336466, 974761, 450967, 743562, 767734]
 METHODS = ['no_pretrain', 'rand_corr', 'cls_corr', 'orc_corr', 'cluster_corr']
 
 
