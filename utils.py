@@ -4,7 +4,6 @@ import pandas as pd
 import torch
 import openml
 from sklearn.preprocessing import StandardScaler
-from sklearn.compose import make_column_transformer
 
 
 def fix_seed(seed):
@@ -13,24 +12,6 @@ def fix_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
 
-def get_openml_classification(did):
-    dataset = openml.datasets.get_dataset(did)
-    # since under SCARF corruption, the replacement by sampling happens before one-hot encoding, load the 
-    # data in its original form
-    X, y, categorical_indicator, attribute_names = dataset.get_data(
-        dataset_format="dataframe", target=dataset.default_target_attribute
-    )
-
-    assert isinstance(X, pd.DataFrame) and isinstance(y, pd.Series)        
-
-    order = np.arange(y.shape[0])
-    # Don't think need to re-seed here
-    np.random.shuffle(order)
-    X, y = X.iloc[order], y.iloc[order]
-
-    # No need to keep categorical indicators and attribute names, as they can be readily obtained from pandas dataframe
-    print(f"Dataset with did {did} has {sum(categorical_indicator)}/{len(attribute_names)} categorical features.")
-    return X, y
 
 def load_openml_list(DIDS):
     datasets = []
@@ -43,11 +24,25 @@ def load_openml_list(DIDS):
 
         if entry['NumberOfClasses'] == 0.0:
             raise Exception("Regression not supported for now")
-            exit(1)
+            exit(1)    
         else:
-            X, y = get_openml_classification(int(entry.did))
-        if X is None:
-            continue
+            dataset = openml.datasets.get_dataset(int(entry.did))
+            # since under SCARF corruption, the replacement by sampling happens before one-hot encoding, load the 
+            # data in its original form
+            X, y, categorical_indicator, attribute_names = dataset.get_data(
+                dataset_format="dataframe", target=dataset.default_target_attribute
+            )
+            if np.any(categorical_indicator):
+                print(f"Dataset {entry['name']} with did {int(entry.did)} has at least one categorical feature, skipping...")
+                continue
+            assert isinstance(X, pd.DataFrame) and isinstance(y, pd.Series)        
+
+            order = np.arange(y.shape[0])
+            # Don't think need to re-seed here
+            np.random.shuffle(order)
+            X, y = X.iloc[order], y.iloc[order]
+
+            assert X is not None
 
         datasets += [[entry['name'], X, y]]
 
@@ -72,44 +67,28 @@ def preprocess_datasets(train_data, valid_data, test_data, normalize_numerical_f
         if train_data[col].isnull().any() or \
             valid_data[col].isnull().any() or \
              test_data[col].isnull().any():
-            # for categorical features, fill with the mode in the training data
-            if train_data[col].dtype.name == 'category':
-                val_fill = train_data[col].mode(dropna=True)[0]
-                train_data[col].fillna(val_fill, inplace=True)
-                valid_data[col].fillna(val_fill, inplace=True)
-                test_data[col].fillna(val_fill, inplace=True)
             # for numerical features, fill with the mean of the training data
-            
-            else:
-                val_fill = train_data[col].mean(skipna=True)
-                train_data[col].fillna(val_fill, inplace=True)
-                valid_data[col].fillna(val_fill, inplace=True)
-                test_data[col].fillna(val_fill, inplace=True)
+            val_fill = train_data[col].mean(skipna=True)
+            train_data[col].fillna(val_fill, inplace=True)
+            valid_data[col].fillna(val_fill, inplace=True)
+            test_data[col].fillna(val_fill, inplace=True)
 
     if normalize_numerical_features:
         # z-score transform numerical values
         scaler = StandardScaler()
-        non_categorical_columns = train_data.select_dtypes(exclude='category').columns
-        if len(non_categorical_columns) == 0:
-            print("No numerical features present! Skip numerical z-score normalization.")
-        else:
-            train_data[non_categorical_columns] = scaler.fit_transform(train_data[non_categorical_columns])
-            valid_data[non_categorical_columns] = scaler.transform(valid_data[non_categorical_columns])
-            test_data[non_categorical_columns] = scaler.transform(test_data[non_categorical_columns])
+        train_data = scaler.fit_transform(train_data)
+        valid_data = scaler.transform(valid_data)
+        test_data = scaler.transform(test_data)
 
     print(f"Data preprocess finished! Dropped {len(features_dropped)} features: {features_dropped}. {'Normalized numerical features.' if normalize_numerical_features else ''}")
-    return
 
-def fit_one_hot_encoder(one_hot_encoder_raw, train_data):
-    categorical_columns = train_data.select_dtypes(include='category').columns
-    one_hot_encoder = make_column_transformer((one_hot_encoder_raw, categorical_columns), remainder='passthrough')
-    one_hot_encoder.fit(train_data)
-    return one_hot_encoder
+    # Since all numerical features, convert them into numpy array here
+    return np.array(train_data), np.array(valid_data), np.array(test_data)
 
-def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled, one_hot_encoder, DEVICE):
+def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled, DEVICE):
     # use the classifier to predict for all data first
     classifier_model.eval()
     with torch.no_grad():
-        pred_logits = classifier_model.get_classification_prediction_logits(torch.tensor(one_hot_encoder.transform(data),dtype=torch.float32).to(DEVICE)).cpu().numpy()
+        pred_logits = classifier_model.get_classification_prediction_logits(torch.tensor(data,dtype=torch.float32).to(DEVICE)).cpu().numpy()
     preds = np.argmax(pred_logits, axis=1)
     return np.where(mask_labeled, targets, preds)

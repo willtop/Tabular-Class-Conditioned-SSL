@@ -1,0 +1,1 @@
+Experiment specs: Corruption rate: 0.3; Fraction of data labeled: 0.25;Number of seeds: 6;contrastive learning max epochs: 1000;supervised learning max epochs: 200;whether freeze pretrained encoders: True.

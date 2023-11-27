@@ -21,8 +21,9 @@ from tqdm.autonotebook import tqdm
 
 from model import Neural_Net
 from dataset_samplers import RandomCorruptSampler, ClassCorruptSampler, SupervisedSampler 
+from corruption_mask_generators import RandomMaskGenerator, CrossClusterMaskGenerator
 from training import train_contrastive_loss, train_classification
-from utils import fix_seed, load_openml_list, preprocess_datasets, fit_one_hot_encoder, get_bootstrapped_targets
+from utils import fix_seed, load_openml_list, preprocess_datasets, get_bootstrapped_targets
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -31,15 +32,18 @@ print("Disabled warnings!")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using DEVICE: {DEVICE}")
 
-FREEZE_PRETRAINED_ENCODER = False
+FREEZE_PRETRAINED_ENCODER = True
+CONTRASTIVE_LEARNING_MAX_EPOCHS = 1000
+SUPERVISED_LEARNING_MAX_EPOCHS = 200
 
 FRACTION_LABELED = 0.25
+CORRUPTION_RATE = 0.3
 BATCH_SIZE = 128
-DIDS = [23, 54, 4538, 6332, 40975]
-#DIDS = [40923] # super large dataset, SCARF paper presents results way off
+DIDS = [11, 54, 1050, 4538]
 SEEDS = [614579, 336466, 974761, 450967, 743562, 767734]
-METHODS = ['no_pretrain', 'rand_corr', 'cls_corr', 'orc_corr', 'cluster_corr']
-
+CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr', 'cluster_corr']
+CORRUPT_LOCATIONS = ['rand_feats', 'crossCluster_feats']
+ALL_METHODS = ['no_pretrain'] + [f'{i}-{j}' for i in CORRUPT_METHODS for j in CORRUPT_LOCATIONS]
 
 if __name__ == "__main__":    
     res_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), \
@@ -48,18 +52,22 @@ if __name__ == "__main__":
     os.makedirs(os.path.dirname(res_file), exist_ok=True) 
     # clear the file
     print(f"Preparing and clearing file {res_file} for writing results...")
-    open(res_file, "w").close()
+    with open(res_file, "w") as res_f:
+        res_f.write(f"Experiment specs: Corruption rate: {CORRUPTION_RATE}; Fraction of data labeled: {FRACTION_LABELED};" +  
+                    f"Number of seeds: {len(SEEDS)};" + 
+                    f"contrastive learning max epochs: {CONTRASTIVE_LEARNING_MAX_EPOCHS};" + 
+                    f"supervised learning max epochs: {SUPERVISED_LEARNING_MAX_EPOCHS};" + 
+                    f"whether freeze pretrained encoders: {FREEZE_PRETRAINED_ENCODER}.\n")
 
     # OpenML dataset
-    datasets = load_openml_list(DIDS)
+    all_datasets = load_openml_list(DIDS)
 
-    for i in range(len(DIDS)):
-        dataset = datasets[i]
-        dataset_name, data, target = dataset
+    for ds in all_datasets:
+        dataset_name, data, target = ds
         print(f"Loaded dataset: {dataset_name}, with data shape: {data.shape}, and target shape: {target.shape}")
-        print(f"{dataset_name} dataset has {len(data.select_dtypes(include='category').columns)}/{len(data.columns)} categorical features.")
+        assert len(data.select_dtypes(include='category').columns)==0
         accuracies = {}
-        for key in METHODS:
+        for key in ALL_METHODS:
             accuracies[key] = []       
 
         # run each experiment multiple times with varying seeds
@@ -75,8 +83,8 @@ if __name__ == "__main__":
             n_classes = len(np.unique(train_targets))
 
             # preprocess datasets
-            preprocess_datasets(train_data, valid_data, test_data, normalize_numerical_features=True)
-            one_hot_encoder = fit_one_hot_encoder(preprocessing.OneHotEncoder(handle_unknown='ignore', drop='if_binary', sparse_output=False), train_data)
+            train_data, valid_data, test_data = preprocess_datasets( \
+                    train_data, valid_data, test_data, normalize_numerical_features=True)
             label_encoder_target = preprocessing.LabelEncoder()
             train_targets = label_encoder_target.fit_transform(train_targets)
             valid_targets = label_encoder_target.transform(valid_targets)
@@ -97,9 +105,9 @@ if __name__ == "__main__":
 
             # prepare models
             models, contrastive_loss_histories, supervised_loss_histories, contrastive_optimizers, supervised_optimizers = {}, {}, {}, {}, {}
-            for key in METHODS:
+            for key in ALL_METHODS:
                 models[key] = Neural_Net(
-                    input_dim=one_hot_encoder.transform(train_data).shape[1],  # model expect one-hot encoded input
+                    input_dim=train_data.shape[1],  # model expect one-hot encoded input
                     emb_dim=256,
                     output_dim=n_classes,
                     model_DEVICE=DEVICE    
@@ -110,14 +118,20 @@ if __name__ == "__main__":
             # Firstly, train the supervised learning model on the labeled subset
             supervised_optimizers['no_pretrain'] = Adam(models['no_pretrain'].parameters(), lr=0.001)    
             print(f"Supervised learning for no_pretrain...")
-            train_losses, valid_losses = train_classification(      \
-                    models['no_pretrain'], supervised_sampler, supervised_optimizers['no_pretrain'], one_hot_encoder, DEVICE, min_epochs=50, early_stopping=False)
+            train_losses, valid_losses = train_classification(models['no_pretrain'], 
+                                                              supervised_sampler, 
+                                                              supervised_optimizers['no_pretrain'], 
+                                                              DEVICE, 
+                                                              n_epochs_max=SUPERVISED_LEARNING_MAX_EPOCHS,
+                                                              n_epochs_min=50, 
+                                                              early_stopping=False)
             supervised_loss_histories['no_pretrain']['train'] = train_losses
             supervised_loss_histories['no_pretrain']['valid'] = valid_losses
 
+            ############# Prepare data samplers for corruption ############
             # Use supervised model to obtain pseudo labels
             contrastive_samplers = {}
-            for key in METHODS:
+            for key in CORRUPT_METHODS:
                 contrastive_samplers[key] = {}
             # Random Sampling: Not using class information in original corruption
             contrastive_samplers['rand_corr']['train'] = RandomCorruptSampler(train_data, BATCH_SIZE) 
@@ -127,63 +141,84 @@ if __name__ == "__main__":
             contrastive_samplers['orc_corr']['valid'] = ClassCorruptSampler(valid_data, BATCH_SIZE, valid_targets)
             # Predicted Class Sampling
             bootstrapped_train_targets = get_bootstrapped_targets( \
-                train_data, train_targets, models['no_pretrain'], mask_train_labeled, one_hot_encoder, DEVICE)
+                train_data, train_targets, models['no_pretrain'], mask_train_labeled, DEVICE)
             contrastive_samplers['cls_corr']['train'] = ClassCorruptSampler(train_data, BATCH_SIZE, bootstrapped_train_targets) 
             bootstrapped_valid_targets = get_bootstrapped_targets( \
-                valid_data, valid_targets, models['no_pretrain'], mask_valid_labeled, one_hot_encoder, DEVICE)
+                valid_data, valid_targets, models['no_pretrain'], mask_valid_labeled, DEVICE)
             contrastive_samplers['cls_corr']['valid'] = ClassCorruptSampler(valid_data, BATCH_SIZE, bootstrapped_valid_targets)
             # Unsupervised Cluster Based Sampling
-            pca_10D = PCA(n_components=10, copy=True)
-            train_data_tmp = pca_10D.fit_transform(one_hot_encoder.transform(train_data))
-            valid_data_tmp = pca_10D.transform(one_hot_encoder.transform(valid_data))
+            pca_10D = PCA(n_components=min(train_data.shape[1], 10), copy=True)
+            train_data_tmp = pca_10D.fit_transform(train_data)
+            valid_data_tmp = pca_10D.transform(valid_data)
             kmeans = KMeans(n_clusters=n_classes)
             train_cluster_assignments = kmeans.fit_predict(train_data_tmp)
             valid_cluster_assignments = kmeans.predict(valid_data_tmp)
             contrastive_samplers['cluster_corr']['train'] = ClassCorruptSampler(train_data, BATCH_SIZE, train_cluster_assignments)
             contrastive_samplers['cluster_corr']['valid'] = ClassCorruptSampler(valid_data, BATCH_SIZE, valid_cluster_assignments)
 
-            # Contrastive training
-            for key in METHODS:
-                if key == "no_pretrain":
-                    continue
-                contrastive_optimizers[key] = Adam(models[key].parameters(), lr=0.001)
-                print(f"Contrastive learning for {key} sampling....")
-                train_losses, valid_losses = train_contrastive_loss(models[key], contrastive_samplers[key], contrastive_optimizers[key], one_hot_encoder, DEVICE, min_epochs=100, early_stopping=False)
-                contrastive_loss_histories[key]['train'] = train_losses
-                contrastive_loss_histories[key]['valid'] = valid_losses
+            ################ Prepare feature selections for masking #############
+            # prepare mask generator
+            mask_generators = {}
+            mask_generators['rand_feats'] = RandomMaskGenerator(train_data.shape[1], CORRUPTION_RATE)
+            mask_generators['crossCluster_feats'] = CrossClusterMaskGenerator(train_data.shape[1], CORRUPTION_RATE)
+            mask_generators['crossCluster_feats'].fit_feature_clusters(train_data)
+
+            ################ Contrastive training #############
+            for corrupt_method in CORRUPT_METHODS:
+                for corrupt_loc in CORRUPT_LOCATIONS:
+                    method_key = f"{corrupt_method}-{corrupt_loc}"
+                    contrastive_optimizers[method_key] = Adam(models[method_key].parameters(), lr=0.001)
+                    print(f"Contrastive learning for {method_key}....")
+                    train_losses, valid_losses = train_contrastive_loss(models[method_key], 
+                                                                        contrastive_samplers[corrupt_method], 
+                                                                        mask_generators[corrupt_loc],
+                                                                        contrastive_optimizers[method_key], 
+                                                                        DEVICE, 
+                                                                        n_epochs_max=CONTRASTIVE_LEARNING_MAX_EPOCHS,
+                                                                        n_epochs_min=100, 
+                                                                        early_stopping=False)
+                    contrastive_loss_histories[method_key]['train'] = train_losses
+                    contrastive_loss_histories[method_key]['valid'] = valid_losses
 
             # fine tune the pre-trained models on the down-stream supervised learning task
-            for key in METHODS:
-                if key == "no_pretrain":
-                    continue
-                if FREEZE_PRETRAINED_ENCODER:
-                    models[key].freeze_encoder()
-                supervised_optimizers[key] = Adam(filter(lambda p: p.requires_grad, models[key].parameters()), lr=0.001)
-                supervised_loss_histories[key] = {'train': [], 'valid': []}
+            for corrupt_method in CORRUPT_METHODS:
+                for corrupt_loc in CORRUPT_LOCATIONS:
+                    method_key = f"{corrupt_method}-{corrupt_loc}"
+                    if FREEZE_PRETRAINED_ENCODER:
+                        models[method_key].freeze_encoder()
+                    supervised_optimizers[method_key] = Adam(filter(lambda p: p.requires_grad, models[method_key].parameters()), lr=0.001)
+                    supervised_loss_histories[method_key] = {'train': [], 'valid': []}
 
-            for key in METHODS:
-                if key == "no_pretrain":
-                    continue
-                print(f"Supervised learning for {key}...")
-                train_losses, valid_losses = train_classification(models[key], supervised_sampler, supervised_optimizers[key], one_hot_encoder, DEVICE, min_epochs=50, early_stopping=False)
-                supervised_loss_histories[key]['train'] = train_losses
-                supervised_loss_histories[key]['valid'] = valid_losses
+            for corrupt_method in CORRUPT_METHODS:
+                for corrupt_loc in CORRUPT_LOCATIONS:
+                    method_key = f"{corrupt_method}-{corrupt_loc}"
+                    print(f"Supervised fine-tuning for {method_key}...")
+                    train_losses, valid_losses = train_classification(models[method_key], 
+                                                                      supervised_sampler, 
+                                                                      supervised_optimizers[method_key], 
+                                                                      DEVICE, 
+                                                                      n_epochs_max=SUPERVISED_LEARNING_MAX_EPOCHS,
+                                                                      n_epochs_min=50, 
+                                                                      early_stopping=False)
+                    supervised_loss_histories[method_key]['train'] = train_losses
+                    supervised_loss_histories[method_key]['valid'] = valid_losses
 
             # Evaluation on prediction accuracies
-            for key in METHODS:
-                models[key].eval()
+            for method_key in ALL_METHODS:
+                models[method_key].eval()
                 with torch.no_grad():
-                    test_prediction_logits = models[key].get_classification_prediction_logits(torch.tensor(one_hot_encoder.transform(test_data), dtype=torch.float32).to(DEVICE)).cpu().numpy()
+                    test_prediction_logits = models[method_key].get_classification_prediction_logits( \
+                                        torch.tensor(test_data, dtype=torch.float32).to(DEVICE)).cpu().numpy()
                     test_predictions = np.argmax(test_prediction_logits,axis=1)
-                    accuracies[key].append(np.mean(test_predictions==test_targets)*100)
+                    accuracies[method_key].append(np.mean(test_predictions==test_targets)*100)
 
         # write the results to a file        
         with open(res_file, 'a') as res_f:
             res_f.write(f"Dataset: {dataset_name}\n")
-            for key in METHODS:
-                avg_accuracy = np.mean(accuracies[key])
-                accuracy_std = np.std(accuracies[key])
-                res_f.write(f"{key} accuracy avg {avg_accuracy:.3f}; std {accuracy_std:.3f}")
+            for method_key in ALL_METHODS:
+                avg_accuracy = np.mean(accuracies[method_key])
+                accuracy_std = np.std(accuracies[method_key])
+                res_f.write(f"{method_key} accuracy avg {avg_accuracy:.3f}; std {accuracy_std:.3f} | ")
             res_f.write("\n")
         
         print(f"{dataset_name} finished!")
