@@ -1,12 +1,7 @@
-Dataset: cmc
-no_pretrain accuracy avg 48.249; std 2.402rand_corr accuracy avg 47.853; std 2.859cls_corr accuracy avg 49.322; std 1.487orc_corr accuracy avg 50.847; std 3.094cluster_corr accuracy avg 49.040; std 2.786
-Dataset: GesturePhaseSegmentationProcessed
-no_pretrain accuracy avg 53.764; std 0.609rand_corr accuracy avg 52.852; std 0.812cls_corr accuracy avg 55.840; std 0.979orc_corr accuracy avg 64.785; std 1.377cluster_corr accuracy avg 53.679; std 1.004
-Dataset: cylinder-bands
-no_pretrain accuracy avg 69.444; std 4.141rand_corr accuracy avg 68.673; std 3.090cls_corr accuracy avg 68.519; std 4.071orc_corr accuracy avg 77.623; std 1.806cluster_corr accuracy avg 69.907; std 1.832
-Dataset: car
-no_pretrain accuracy avg 92.919; std 0.955rand_corr accuracy avg 92.775; std 1.836cls_corr accuracy avg 92.245; std 1.560orc_corr accuracy avg 97.784; std 0.570cluster_corr accuracy avg 91.329; std 0.883
+Experiment specs: Corruption rate: 0.3; Fraction of data labeled: 0.25;Number of seeds: 6;contrastive learning max epochs: 1000;supervised learning max epochs: 200;whether freeze pretrained encoders: True.
+Dataset: balance-scale
+no_pretrain accuracy avg 92.400; std 2.389 | rand_corr-rand_feats accuracy avg 85.467; std 4.674 | rand_corr-crossCluster_feats accuracy avg 80.533; std 10.262 | cls_corr-rand_feats accuracy avg 89.467; std 4.440 | cls_corr-crossCluster_feats accuracy avg 89.600; std 3.200 | orc_corr-rand_feats accuracy avg 91.067; std 3.344 | orc_corr-crossCluster_feats accuracy avg 90.533; std 2.505 | cluster_corr-rand_feats accuracy avg 79.733; std 3.352 | cluster_corr-crossCluster_feats accuracy avg 78.133; std 4.374 | 
 Dataset: vehicle
-no_pretrain accuracy avg 72.941; std 3.168rand_corr accuracy avg 75.392; std 2.528cls_corr accuracy avg 72.843; std 2.949orc_corr accuracy avg 75.784; std 1.096cluster_corr accuracy avg 73.039; std 2.077
-Dataset: Devnagari-Script
-no_pretrain accuracy avg 86.739; std 0.000rand_corr accuracy avg 83.011; std 0.000cls_corr accuracy avg 86.071; std 0.000orc_corr accuracy avg 87.908; std 0.000cluster_corr accuracy avg 56.332; std 0.000
+no_pretrain accuracy avg 75.098; std 2.000 | rand_corr-rand_feats accuracy avg 71.275; std 3.317 | rand_corr-crossCluster_feats accuracy avg 65.686; std 6.512 | cls_corr-rand_feats accuracy avg 73.725; std 2.112 | cls_corr-crossCluster_feats accuracy avg 73.431; std 1.417 | orc_corr-rand_feats accuracy avg 75.196; std 3.064 | orc_corr-crossCluster_feats accuracy avg 74.216; std 2.105 | cluster_corr-rand_feats accuracy avg 69.510; std 3.352 | cluster_corr-crossCluster_feats accuracy avg 65.588; std 4.015 | 
+Dataset: pc3
+no_pretrain accuracy avg 86.581; std 1.167 | rand_corr-rand_feats accuracy avg 86.155; std 1.949 | rand_corr-crossCluster_feats accuracy avg 85.357; std 0.948 | cls_corr-rand_feats accuracy avg 86.635; std 1.082 | cls_corr-crossCluster_feats accuracy avg 85.517; std 0.301 | orc_corr-rand_feats accuracy avg 87.220; std 0.761 | orc_corr-crossCluster_feats accuracy avg 85.889; std 1.270 | cluster_corr-rand_feats accuracy avg 85.942; std 1.405 | cluster_corr-crossCluster_feats accuracy avg 86.422; std 2.235 | 
