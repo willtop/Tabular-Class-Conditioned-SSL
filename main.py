@@ -32,7 +32,7 @@ print("Disabled warnings!")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using DEVICE: {DEVICE}")
 
-FREEZE_PRETRAINED_ENCODER = True
+FREEZE_PRETRAINED_ENCODER = False
 CONTRASTIVE_LEARNING_MAX_EPOCHS = 500
 SUPERVISED_LEARNING_MAX_EPOCHS = 200
 
@@ -40,7 +40,7 @@ FRACTION_LABELED = 0.15
 CORRUPTION_RATE = 0.5
 BATCH_SIZE = 128
 DIDS = [11, 54, 1050]
-SEEDS = [614579, 336466, 974761, 450967]#, 743562, 767734]
+SEEDS = [614579, 336466, 974761, 450967, 743562]#, 767734]
 CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr', 'cluster_corr']
 CORRUPT_LOCATIONS = ['rand_feats', 'crossCluster_feats']
 ALL_METHODS = ['no_pretrain'] + [f'{i}-{j}' for i in CORRUPT_METHODS for j in CORRUPT_LOCATIONS]
@@ -89,6 +89,13 @@ if __name__ == "__main__":
             train_targets = label_encoder_target.fit_transform(train_targets)
             valid_targets = label_encoder_target.transform(valid_targets)
             test_targets = label_encoder_target.transform(test_targets)
+            print(f"Class distributions:")
+            unique, counts = np.unique(train_targets, return_counts=True)
+            print(f"Training: cls: {unique}; counts: {counts}")
+            unique, counts = np.unique(valid_targets, return_counts=True)
+            print(f"Validation: cls: {unique}; counts: {counts}")
+            unique, counts = np.unique(test_targets, return_counts=True)
+            print(f"Testing: cls: {unique}; counts: {counts}")
             
             # separate out labeled subset
             n_train_samples_labeled = int(len(train_data)*FRACTION_LABELED)

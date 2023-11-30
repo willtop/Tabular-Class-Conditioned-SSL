@@ -10,8 +10,11 @@ class BasicSampler():
         self.target = target
         self.BATCH_SIZE = BATCH_SIZE
         self.n_samples = np.shape(self.data)[0]
+        self.n_features = np.shape(self.data)[1]
         self.n_batches = int(np.ceil(self.n_samples/BATCH_SIZE))
         self.batch_end_pointer = 0
+        if self.target is not None:
+            assert self.target.ndim == 1, "expecting targets to be in a row vector."
 
     def __len__(self):
         return np.shape(self.data)[0]
@@ -46,6 +49,15 @@ class BasicSampler():
     
         return np.array(data_batch_1), np.array(data_batch_2)
     
+    # sample from each column of the data independently
+    # achieve uniform value sampling from each feature
+    def _sample_columns_iid(self, data):
+        assert data.shape[1] == self.n_features
+        res = []
+        for i in range(self.n_features):
+            res.append(np.random.choice(data[:, i]))        
+        return np.array(res)
+    
     def get_data(self):
         return self.data
     
@@ -63,14 +75,14 @@ class RandomCorruptSampler(BasicSampler):
         return f"A RandomCorruptSampler object, with datasize {len(self)}."
                              
     def _get_one_sample_pair(self, index):
-        # the dataset must return a pair of samples: the anchor and a random one from the
-        # dataset that will be used to corrupt the anchor
-        sample = self.data[index]
+        # the dataset must return a pair of samples: the anchor and a randomly composed one (feature-wise independently)
+        # from the dataset that will be used to corrupt the anchor
+        anchor = self.data[index]
 
-        random_idx = np.random.randint(0, len(self))
-        random_sample = self.data[random_idx]
+        # randomly sample from each column independently to compose a row for corruption
+        corrupt_src = self._sample_columns_iid(self.data)
 
-        return sample, random_sample
+        return anchor, corrupt_src
     
 
 
@@ -85,13 +97,14 @@ class ClassCorruptSampler(RandomCorruptSampler):
 
     # Modification: the sample used to corrupt the anchor has to be from the same class
     def _get_one_sample_pair(self, index):
-        sample = self.data[index]
+        anchor = self.data[index]
 
+        # prune the table to keep only rows with the same class id as the anchor
         candidate_idxes = np.where(self.target == self.target[index])[0]
-        random_idx = np.random.choice(candidate_idxes)
-        random_sample = self.data[random_idx]
         
-        return sample, random_sample
+        corrupt_src = self._sample_columns_iid(self.data[candidate_idxes])
+        
+        return anchor, corrupt_src
     
 
     
