@@ -92,3 +92,11 @@ def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled, DEVI
         pred_logits = classifier_model.get_classification_prediction_logits(torch.tensor(data,dtype=torch.float32).to(DEVICE)).cpu().numpy()
     preds = np.argmax(pred_logits, axis=1)
     return np.where(mask_labeled, targets, preds)
+
+def generate_pretrain_validation_set(valid_sampler, generate_epochs):
+    valid_static_set = []
+    for i in range(generate_epochs):
+        for j in range(valid_sampler.n_batches):
+            anchors, anchors_corrupted = valid_sampler.sample_batch()
+            valid_static_set.append([anchors, anchors_corrupted])
+    return valid_static_set

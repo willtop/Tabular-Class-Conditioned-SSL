@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
-def train_contrastive_loss(model, data_sampler, mask_generator, optimizer, DEVICE, n_epochs_max, n_epochs_min, early_stopping):
+def train_contrastive_loss(model, data_sampler, static_valid_sets, mask_generator, optimizer, DEVICE, n_epochs_max):
     early_stopping_patience = 3
     train_losses, valid_losses = [], []
 
@@ -44,13 +44,8 @@ def train_contrastive_loss(model, data_sampler, mask_generator, optimizer, DEVIC
         model.eval()
         epoch_loss = 0
         with torch.no_grad():
-            for j in range(data_sampler['valid'].n_batches):
-                anchors, random_samples = data_sampler['valid'].sample_batch()
-                # firstly, corrupt on the original pandas dataframe
-                corruption_masks = mask_generator.get_masks(np.shape(anchors)[0])
-                assert np.shape(anchors) == np.shape(corruption_masks)
-
-                anchors_corrupted = np.where(corruption_masks, random_samples, anchors)
+            for anchors, anchors_corrupted in static_valid_sets:
+                assert np.shape(anchors) == np.shape(anchors_corrupted) 
 
                 anchors, anchors_corrupted = torch.tensor(anchors, dtype=torch.float32).to(DEVICE), \
                                                 torch.tensor(anchors_corrupted, dtype=torch.float32).to(DEVICE)
@@ -67,12 +62,11 @@ def train_contrastive_loss(model, data_sampler, mask_generator, optimizer, DEVIC
 
         valid_losses.append(epoch_loss / data_sampler['valid'].n_batches)
 
-        if early_stopping:
-            # Decide if stopping already
-            if (i+1) > max(early_stopping_patience, n_epochs_min) and \
-                valid_losses[-early_stopping_patience-1] >= np.max(valid_losses[-early_stopping_patience:]) :
-                print(f"Reached early stopping with patience {early_stopping_patience}. Stopping after epoch {i+1} (>{n_epochs_min})!")
-                break
+        # Early stopping with patience 3
+        if (i+1) > early_stopping_patience and \
+            valid_losses[-early_stopping_patience-1] >= np.max(valid_losses[-early_stopping_patience:]) :
+            print(f"Reached early stopping with patience {early_stopping_patience}. Stopping after epoch {i+1}!")
+            break
 
     assert len(train_losses) == len(valid_losses) == i+1
 

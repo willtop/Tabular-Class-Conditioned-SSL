@@ -23,7 +23,7 @@ from model import Neural_Net
 from dataset_samplers import RandomCorruptSampler, ClassCorruptSampler, SupervisedSampler 
 from corruption_mask_generators import RandomMaskGenerator, CrossClusterMaskGenerator
 from training import train_contrastive_loss, train_classification
-from utils import fix_seed, load_openml_list, preprocess_datasets, get_bootstrapped_targets
+from utils import fix_seed, load_openml_list, preprocess_datasets, get_bootstrapped_targets, generate_pretrain_validation_set
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -107,8 +107,8 @@ if __name__ == "__main__":
             mask_valid_labeled = np.zeros(len(valid_data), dtype=bool)
             mask_valid_labeled[idxes_tmp] = True
             supervised_sampler = {}
-            supervised_sampler['train'] = SupervisedSampler(data=train_data[mask_train_labeled], BATCH_SIZE=BATCH_SIZE, target=train_targets[mask_train_labeled])
-            supervised_sampler['valid'] = SupervisedSampler(data=valid_data[mask_valid_labeled], BATCH_SIZE=BATCH_SIZE, target=valid_targets[mask_valid_labeled])
+            supervised_sampler['train'] = SupervisedSampler(data=train_data[mask_train_labeled], batch_size=BATCH_SIZE, target=train_targets[mask_train_labeled])
+            supervised_sampler['valid'] = SupervisedSampler(data=valid_data[mask_valid_labeled], batch_size=BATCH_SIZE, target=valid_targets[mask_valid_labeled])
 
             # prepare models
             models, contrastive_loss_histories, supervised_loss_histories, contrastive_optimizers, supervised_optimizers = {}, {}, {}, {}, {}
@@ -163,6 +163,14 @@ if __name__ == "__main__":
             contrastive_samplers['cluster_corr']['train'] = ClassCorruptSampler(train_data, BATCH_SIZE, train_cluster_assignments)
             contrastive_samplers['cluster_corr']['valid'] = ClassCorruptSampler(valid_data, BATCH_SIZE, valid_cluster_assignments)
 
+            # generate static validation set for pretraining
+            # generate and fix (anchor, corrupt) pairs
+            valid_data_static_pretrain_sets = {}
+            static_generate_epochs = 10 # following SCARF's description
+            for corrupt_method in CORRUPT_METHODS:
+                valid_data_static_pretrain_sets[corrupt_method] = generate_pretrain_validation_set(         \
+                                    contrastive_samplers[corrupt_method]['valid'], static_generate_epochs)
+
             ################ Prepare feature selections for masking #############
             # prepare mask generator
             mask_generators = {}
@@ -177,13 +185,12 @@ if __name__ == "__main__":
                     contrastive_optimizers[method_key] = Adam(models[method_key].parameters(), lr=0.001)
                     print(f"Contrastive learning for {method_key}....")
                     train_losses, valid_losses = train_contrastive_loss(models[method_key], 
-                                                                        contrastive_samplers[corrupt_method], 
+                                                                        contrastive_samplers[corrupt_method],
+                                                                        valid_data_static_pretrain_sets[corrupt_method], 
                                                                         mask_generators[corrupt_loc],
                                                                         contrastive_optimizers[method_key], 
                                                                         DEVICE, 
-                                                                        n_epochs_max=CONTRASTIVE_LEARNING_MAX_EPOCHS,
-                                                                        n_epochs_min=100, 
-                                                                        early_stopping=False)
+                                                                        n_epochs_max=CONTRASTIVE_LEARNING_MAX_EPOCHS)
                     contrastive_loss_histories[method_key]['train'] = train_losses
                     contrastive_loss_histories[method_key]['valid'] = valid_losses
 
