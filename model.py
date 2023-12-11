@@ -31,7 +31,7 @@ class Neural_Net(nn.Module):
         model_DEVICE,
         encoder_depth=4,
         pretrain_head_depth=2,
-        classification_head_depth=2,
+        classification_head_depth=3,
         contrastive_loss_temperature=1.0,
         dropout_prob=0.0
     ):

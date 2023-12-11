@@ -44,46 +44,39 @@ def load_openml_list(DIDS):
 
             assert X is not None
 
-        datasets += [[entry['name'], X, y]]
+        datasets += [[entry['name'], entry.did, X, y]]
 
     return datasets
 
-def preprocess_datasets(train_data, valid_data, test_data, normalize_numerical_features):
+def preprocess_datasets(train_data, test_data, normalize_numerical_features):
     assert isinstance(train_data, pd.DataFrame) and \
-            isinstance(valid_data, pd.DataFrame) and \
              isinstance(test_data, pd.DataFrame)
-    assert np.all(train_data.columns == valid_data.columns) and \
-            np.all(valid_data.columns == test_data.columns)
+    assert np.all(train_data.columns == test_data.columns)
     features_dropped = []
     for col in train_data.columns:
         # drop columns with all null values or with a constant value on training data
         if train_data[col].isnull().all() or train_data[col].nunique() == 1:
             train_data.drop(columns=col, inplace=True)
-            valid_data.drop(columns=col, inplace=True)
             test_data.drop(columns=col, inplace=True)
             features_dropped.append(col)
             continue
         # fill the missing values
-        if train_data[col].isnull().any() or \
-            valid_data[col].isnull().any() or \
-             test_data[col].isnull().any():
+        if train_data[col].isnull().any() or test_data[col].isnull().any():
             # for numerical features, fill with the mean of the training data
             val_fill = train_data[col].mean(skipna=True)
             train_data[col].fillna(val_fill, inplace=True)
-            valid_data[col].fillna(val_fill, inplace=True)
             test_data[col].fillna(val_fill, inplace=True)
 
     if normalize_numerical_features:
         # z-score transform numerical values
         scaler = StandardScaler()
         train_data = scaler.fit_transform(train_data)
-        valid_data = scaler.transform(valid_data)
         test_data = scaler.transform(test_data)
 
     print(f"Data preprocess finished! Dropped {len(features_dropped)} features: {features_dropped}. {'Normalized numerical features.' if normalize_numerical_features else ''}")
 
     # Since all numerical features, convert them into numpy array here
-    return np.array(train_data), np.array(valid_data), np.array(test_data)
+    return np.array(train_data), np.array(test_data)
 
 def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled, DEVICE):
     # use the classifier to predict for all data first
@@ -92,11 +85,3 @@ def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled, DEVI
         pred_logits = classifier_model.get_classification_prediction_logits(torch.tensor(data,dtype=torch.float32).to(DEVICE)).cpu().numpy()
     preds = np.argmax(pred_logits, axis=1)
     return np.where(mask_labeled, targets, preds)
-
-def generate_pretrain_validation_set(valid_sampler, generate_epochs):
-    valid_static_set = []
-    for i in range(generate_epochs):
-        for j in range(valid_sampler.n_batches):
-            anchors, anchors_corrupted = valid_sampler.sample_batch()
-            valid_static_set.append([anchors, anchors_corrupted])
-    return valid_static_set
