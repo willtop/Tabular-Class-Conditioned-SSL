@@ -4,6 +4,8 @@ import pandas as pd
 import torch
 import openml
 from sklearn.preprocessing import StandardScaler
+import xgboost as xgb
+import time
 
 
 def fix_seed(seed):
@@ -85,3 +87,25 @@ def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled, DEVI
         pred_logits = classifier_model.get_classification_prediction_logits(torch.tensor(data,dtype=torch.float32).to(DEVICE)).cpu().numpy()
     preds = np.argmax(pred_logits, axis=1)
     return np.where(mask_labeled, targets, preds)
+
+def compute_feature_mutual_influences(data):
+    assert isinstance(data, np.ndarray)
+    # initialize a simple xgboost regression model
+    xgb_reg = xgb.XGBRegressor(n_estimators=100, max_depth=10, eta=0.1, subsample=0.7, colsample_bytree=0.8)
+    feat_impt = []
+    start_time = time.time()
+    for i in range(np.shape(data)[1]):
+        xgb_reg.fit(np.delete(data, obj=i, axis=1), data[:,i])
+        # somehow, the feature importance score doesn't reflect the full mapping from one column to a target as its copy
+        # the feature importances obtained from the booster.get_score() method doesn't reflect such relationship at all
+        # the xgb_obj.feature_importances_ reflect that somehow
+        feat_impt_onevar = xgb_reg.feature_importances_
+        feat_impt_onevar = np.insert(feat_impt_onevar, obj=i, values=0)
+        feat_impt.append(feat_impt_onevar)
+    feat_impt = np.array(feat_impt)
+    # take the gap of feature importances
+    feat_impt_range = np.mean(np.ptp(feat_impt, axis=1))
+    # take the summation of its transpose to get the importance both ways 
+    feat_impt_symm = feat_impt + feat_impt.transpose()
+    print(f"Feature mutual influences computation completed for {len(data)} samples each with {np.shape(data)[1]} features! Took {time.time()-start_time:.2f} seconds")
+    return feat_impt_symm, feat_impt_range

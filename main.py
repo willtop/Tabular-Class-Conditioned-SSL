@@ -21,9 +21,9 @@ from tqdm.autonotebook import tqdm
 
 from model import Neural_Net
 from dataset_samplers import RandomCorruptSampler, ClassCorruptSampler, SupervisedSampler 
-from corruption_mask_generators import RandomMaskGenerator, CrossClusterMaskGenerator
+from corruption_mask_generators import RandomMaskGenerator, CorrelationMaskGenerator
 from training import train_contrastive_loss, train_classification
-from utils import fix_seed, load_openml_list, preprocess_datasets, get_bootstrapped_targets
+from utils import fix_seed, load_openml_list, preprocess_datasets, get_bootstrapped_targets, compute_feature_mutual_influences
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -33,16 +33,16 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using DEVICE: {DEVICE}")
 
 FREEZE_PRETRAINED_ENCODER = True
-CONTRASTIVE_LEARNING_MAX_EPOCHS = 1000
-SUPERVISED_LEARNING_MAX_EPOCHS = 200
+CONTRASTIVE_LEARNING_MAX_EPOCHS = 500
+SUPERVISED_LEARNING_MAX_EPOCHS = 100
 
 FRACTION_LABELED = 0.1
 CORRUPTION_RATE = 0.3
 BATCH_SIZE = 256
 ALL_DIDS = [11, 14, 15, 16, 18, 22, 23, 29, 31, 37, 50, 54, 188, 458, 469, 1049, 1050, 1063, 1068, 1510, 1494, 1480, 1462, 1464, 6332, 23381, 40966, 40982, 40994, 40975]
 SEEDS = [614579, 336466, 974761, 450967, 743562, 767734]
-CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr', 'cluster_corr']
-CORRUPT_LOCATIONS = ['rand_feats', 'crossCluster_feats']
+CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr']
+CORRUPT_LOCATIONS = ['rand_feats', 'leastCorr_feats', 'mostCorr_feats']
 ALL_METHODS = ['no_pretrain'] + [f'{i}-{j}' for i in CORRUPT_METHODS for j in CORRUPT_LOCATIONS]
 
 if __name__ == "__main__":    
@@ -97,6 +97,10 @@ if __name__ == "__main__":
             mask_train_labeled[idxes_tmp] = True
             supervised_sampler = SupervisedSampler(data=train_data[mask_train_labeled], batch_size=BATCH_SIZE, target=train_targets[mask_train_labeled])
 
+            # train xgboost to learn predicting one feature based on the rest
+            # use learned feature importance to identify feature correlations
+            feat_impt, feat_impt_range = compute_feature_mutual_influences(train_data)
+
             # prepare models
             models, contrastive_loss_histories, supervised_loss_histories, contrastive_optimizers, supervised_optimizers = {}, {}, {}, {}, {}
             for key in ALL_METHODS:
@@ -132,21 +136,16 @@ if __name__ == "__main__":
             bootstrapped_train_targets = get_bootstrapped_targets( \
                 train_data, train_targets, models['no_pretrain'], mask_train_labeled, DEVICE)
             contrastive_samplers['cls_corr'] = ClassCorruptSampler(train_data, BATCH_SIZE, bootstrapped_train_targets) 
-            # Unsupervised Cluster Based Sampling
-            pca_10D = PCA(n_components=min(train_data.shape[1], 20), copy=True)
-            train_data_tmp = pca_10D.fit_transform(train_data)
-            # have more clusters so its more likely to agree with actual classes in terms of grouping similar data
-            kmeans = KMeans(n_clusters=min(int(1.5*n_classes), len(train_data)))
-            train_cluster_assignments = kmeans.fit_predict(train_data_tmp)
-            contrastive_samplers['cluster_corr'] = ClassCorruptSampler(train_data, BATCH_SIZE, train_cluster_assignments)
-
 
             ################ Prepare feature selections for masking #############
             # prepare mask generator
             mask_generators = {}
             mask_generators['rand_feats'] = RandomMaskGenerator(train_data.shape[1], CORRUPTION_RATE)
-            mask_generators['crossCluster_feats'] = CrossClusterMaskGenerator(train_data.shape[1], CORRUPTION_RATE)
-            mask_generators['crossCluster_feats'].fit_feature_clusters(train_data)
+            mask_generators['leastCorr_feats'] = CorrelationMaskGenerator(train_data.shape[1], CORRUPTION_RATE, high_correlation=False)
+            mask_generators['mostCorr_feats'] = CorrelationMaskGenerator(train_data.shape[1], CORRUPTION_RATE, high_correlation=True)
+            mask_generators['leastCorr_feats'].initialize_probabilities(feat_impt)
+            mask_generators['mostCorr_feats'].initialize_probabilities(feat_impt)
+
 
             ################ Contrastive training #############
             for corrupt_method in CORRUPT_METHODS:
@@ -193,11 +192,11 @@ if __name__ == "__main__":
 
         # write the results to a file        
         with open(res_file, 'a') as res_f:
-            res_f.write(f"Dataset: {dataset_name} ({dataset_did})\n")
+            res_f.write(f"Dataset: {dataset_name} ({dataset_did}) with feature importance range {feat_impt_range:.2f}\n")
             for method_key in ALL_METHODS:
                 avg_accuracy = np.mean(accuracies[method_key])
                 accuracy_std = np.std(accuracies[method_key])
-                res_f.write(f"{method_key} accuracy avg {avg_accuracy:.3f}; std {accuracy_std:.3f} | ")
+                res_f.write(f"{method_key} accuracy avg {avg_accuracy:.2f}; std {accuracy_std:.2f} |  ")
             res_f.write("\n")
         
         print(f"{dataset_name} finished!")
