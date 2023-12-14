@@ -2,16 +2,16 @@ import numpy as np
 import torch
 import pandas as pd
 from torch.utils.data import Dataset
+from utils import *
 
 class BasicSampler():
-    def __init__(self, data, batch_size, target):
+    def __init__(self, data, target):
         assert isinstance(data, np.ndarray)
         self.data = data
         self.target = target
-        self.batch_size = batch_size
         self.n_samples = np.shape(self.data)[0]
         self.n_features = np.shape(self.data)[1]
-        self.n_batches = int(np.ceil(self.n_samples/batch_size))
+        self.n_batches = int(np.ceil(self.n_samples/BATCH_SIZE))
         self.batch_end_pointer = 0
         if self.target is not None:
             assert self.target.ndim == 1, "expecting targets to be in a row vector."
@@ -37,7 +37,7 @@ class BasicSampler():
     
     def sample_batch(self):
         data_batch_1, data_batch_2 = [], []
-        new_batch_end_pointer = min(self.batch_end_pointer + self.batch_size, self.n_samples)
+        new_batch_end_pointer = min(self.batch_end_pointer + BATCH_SIZE, self.n_samples)
         for i in range(self.batch_end_pointer, new_batch_end_pointer):
             data_1, data_2 = self._get_one_sample_pair(i)
             data_batch_1.append(data_1)
@@ -68,8 +68,8 @@ class BasicSampler():
 
 # As a base class with random corruption, does not need targets
 class RandomCorruptSampler(BasicSampler):
-    def __init__(self, data, batch_size, target=None):
-        super().__init__(data, batch_size, target)        
+    def __init__(self, data, target=None):
+        super().__init__(data, target)        
 
     def __str__(self):
         return f"A RandomCorruptSampler object, with datasize {len(self)}."
@@ -89,8 +89,8 @@ class RandomCorruptSampler(BasicSampler):
 # Can be used with both predicted classes: bootstrapping from semi-supervised learning;
 # or with oracle class labels
 class ClassCorruptSampler(RandomCorruptSampler):
-    def __init__(self, data, batch_size, target):
-        super().__init__(data, batch_size, target)
+    def __init__(self, data, target):
+        super().__init__(data, target)
 
     def __str__(self):
         return f"A ClassCorruptSampler object, with datasize {len(self)}."
@@ -109,8 +109,8 @@ class ClassCorruptSampler(RandomCorruptSampler):
     
 # Used for supervised learning
 class SupervisedSampler(BasicSampler):
-    def __init__(self, data, batch_size, target):
-        super().__init__(data, batch_size, target)
+    def __init__(self, data, target):
+        super().__init__(data, target)
 
     def __str__(self):
         return f"A SupervisedSampler object, with datasize {len(self)}."

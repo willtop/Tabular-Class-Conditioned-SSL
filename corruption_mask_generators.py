@@ -1,11 +1,11 @@
 import numpy as np
 from sklearn.cluster import SpectralClustering
+from utils import *
 
 class RandomMaskGenerator():
-    def __init__(self, n_features, corruption_rate):
+    def __init__(self, n_features):
         self.n_features = n_features
-        self.corruption_rate = corruption_rate
-        self.corruption_len = int(np.ceil(self.corruption_rate * self.n_features))
+        self.corruption_len = int(np.ceil(CORRUPTION_RATE * self.n_features))
         assert self.corruption_len < self.n_features
     
     def get_masks(self, n_samples):
@@ -17,8 +17,8 @@ class RandomMaskGenerator():
     
 
 class CorrelationMaskGenerator(RandomMaskGenerator):
-    def __init__(self, n_features, corruption_rate, high_correlation):
-        super().__init__(n_features, corruption_rate)
+    def __init__(self, n_features, high_correlation):
+        super().__init__(n_features)
         self.high_correlation = high_correlation
         self.softmax_temporature = 0.3
 

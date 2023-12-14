@@ -6,6 +6,17 @@ import openml
 from sklearn.preprocessing import StandardScaler
 import xgboost as xgb
 import time
+from torch.optim import Adam
+
+# Global parameters
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+CONTRASTIVE_LEARNING_MAX_EPOCHS = 500
+SUPERVISED_LEARNING_MAX_EPOCHS = 100
+CLS_CORR_REFRESH_SAMPLER_PERIOD = 50
+FRACTION_LABELED = 0.1
+CORRUPTION_RATE = 0.3
+BATCH_SIZE = 256
+SEEDS = [614579, 336466, 974761, 450967, 743562]
 
 
 def fix_seed(seed):
@@ -80,7 +91,7 @@ def preprocess_datasets(train_data, test_data, normalize_numerical_features):
     # Since all numerical features, convert them into numpy array here
     return np.array(train_data), np.array(test_data)
 
-def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled, DEVICE):
+def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled):
     # use the classifier to predict for all data first
     classifier_model.eval()
     with torch.no_grad():
@@ -107,3 +118,6 @@ def compute_feature_mutual_influences(data):
     feat_impt_symm = feat_impt + feat_impt.transpose()
     print(f"Feature influences computated for {len(data)} samples each with {np.shape(data)[1]} features! Took {time.time()-start_time:.2f} seconds. The max range is {feat_impt_range_max}")
     return feat_impt_symm, feat_impt_range_max
+
+def initialize_adam_optimizer(model):
+    return Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)

@@ -3,6 +3,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from utils import *
 
 
 class MLP(torch.nn.Sequential):
@@ -27,13 +28,7 @@ class Neural_Net(nn.Module):
         self,
         input_dim,
         emb_dim,
-        output_dim,
-        model_DEVICE,
-        encoder_depth=4,
-        pretrain_head_depth=2,
-        classification_head_depth=2,
-        contrastive_loss_temperature=1.0,
-        dropout_prob=0.0
+        output_dim
     ):
         """Implementation of SCARF: Self-Supervised Contrastive Learning using Random Feature Corruption.
         It consists in an encoder that learns the embeddings.
@@ -51,19 +46,21 @@ class Neural_Net(nn.Module):
         """
         super().__init__()
 
-        self.encoder = MLP(input_dim, emb_dim, emb_dim, encoder_depth, dropout_prob)
-        self.pretraining_head = MLP(emb_dim, emb_dim, emb_dim, pretrain_head_depth, dropout_prob)
-        self.classification_head = MLP(emb_dim, emb_dim, output_dim, classification_head_depth, dropout_prob)
+        self.encoder_depth = 4
+        self.pretrain_head_depth = 2
+        self.classification_head_depth = 2
+        self.contrastive_loss_temperature = 1.0
+        self.dropout_prob = 0.0
+
+        self.encoder = MLP(input_dim, emb_dim, emb_dim, self.encoder_depth, self.dropout_prob)
+        self.pretraining_head = MLP(emb_dim, emb_dim, emb_dim, self.pretrain_head_depth, self.dropout_prob)
+        self.classification_head = MLP(emb_dim, emb_dim, output_dim, self.classification_head_depth, self.dropout_prob)
 
         # initialize weights
         self.encoder.apply(self._init_weights)
         self.pretraining_head.apply(self._init_weights)
-        self.classification_head.apply(self._init_weights)
-
-        # initialize other hyper-parameters
-        self.contrastive_loss_temperature = contrastive_loss_temperature
-        self.DEVICE = model_DEVICE
-
+        # also need classification head re-initialization from outside
+        self.initialize_classification_head() 
 
     def _init_weights(self, module):
         if isinstance(module, nn.Linear):
@@ -95,7 +92,14 @@ class Neural_Net(nn.Module):
         self.encoder.requires_grad_(False)
         return
 
+    def unfreeze_encoder(self):
+        self.encoder.requires_grad_(True)
+        return
     
+    def initialize_classification_head(self):
+        self.classification_head.apply(self._init_weights)
+        return
+
     def contrastive_loss(self, z_i, z_j):
         """
         NT-Xent loss for contrastive learning using cosine distance as similarity metric as used in [SimCLR](https://arxiv.org/abs/2002.05709).
@@ -112,22 +116,22 @@ class Neural_Net(nn.Module):
         Returns:
             float: loss
         """
-        BATCH_SIZE = z_i.size(0)
+        batch_size_here = z_i.size(0) # account for last incomplete batch sampled
 
         # compute similarity between the sample's embedding and its corrupted view
         z = torch.cat([z_i, z_j], dim=0)
         similarity = F.cosine_similarity(z.unsqueeze(1), z.unsqueeze(0), dim=2)
 
-        sim_ij = torch.diag(similarity, BATCH_SIZE)
-        sim_ji = torch.diag(similarity, -BATCH_SIZE)
+        sim_ij = torch.diag(similarity, batch_size_here)
+        sim_ji = torch.diag(similarity, -batch_size_here)
         positives = torch.cat([sim_ij, sim_ji], dim=0)
 
-        mask = (~torch.eye(BATCH_SIZE * 2, BATCH_SIZE * 2, dtype=torch.bool)).float().to(self.DEVICE)
+        mask = (~torch.eye(batch_size_here * 2, batch_size_here * 2, dtype=torch.bool)).float().to(DEVICE)
         numerator = torch.exp(positives / self.contrastive_loss_temperature)
         denominator = mask * torch.exp(similarity / self.contrastive_loss_temperature)
 
         all_losses = -torch.log(numerator / torch.sum(denominator, dim=1))
-        loss = torch.sum(all_losses) / (2 * BATCH_SIZE)
+        loss = torch.sum(all_losses) / (2 * batch_size_here)
 
         return loss
 
