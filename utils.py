@@ -94,18 +94,16 @@ def compute_feature_mutual_influences(data):
     xgb_reg = xgb.XGBRegressor(n_estimators=100, max_depth=10, eta=0.1, subsample=0.7, colsample_bytree=0.8)
     feat_impt = []
     start_time = time.time()
+    feat_impt_range_max = 0
     for i in range(np.shape(data)[1]):
         xgb_reg.fit(np.delete(data, obj=i, axis=1), data[:,i])
         # somehow, the feature importance score doesn't reflect the full mapping from one column to a target as its copy
         # the feature importances obtained from the booster.get_score() method doesn't reflect such relationship at all
         # the xgb_obj.feature_importances_ reflect that somehow
-        feat_impt_onevar = xgb_reg.feature_importances_
-        feat_impt_onevar = np.insert(feat_impt_onevar, obj=i, values=0)
-        feat_impt.append(feat_impt_onevar)
+        feat_impt_range_max = max(feat_impt_range_max, np.ptp(xgb_reg.feature_importances_)) 
+        feat_impt.append(np.insert(xgb_reg.feature_importances_, obj=i, values=0))
     feat_impt = np.array(feat_impt)
-    # take the gap of feature importances
-    feat_impt_range = np.mean(np.ptp(feat_impt, axis=1))
     # take the summation of its transpose to get the importance both ways 
     feat_impt_symm = feat_impt + feat_impt.transpose()
-    print(f"Feature mutual influences computation completed for {len(data)} samples each with {np.shape(data)[1]} features! Took {time.time()-start_time:.2f} seconds")
-    return feat_impt_symm, feat_impt_range
+    print(f"Feature influences computated for {len(data)} samples each with {np.shape(data)[1]} features! Took {time.time()-start_time:.2f} seconds. The max range is {feat_impt_range_max}")
+    return feat_impt_symm, feat_impt_range_max

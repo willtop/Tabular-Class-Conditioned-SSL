@@ -42,6 +42,7 @@ def train_contrastive_loss(model, data_sampler, mask_generator, optimizer, DEVIC
 
     return train_losses
 
+
 def train_classification(model, data_sampler, optimizer, DEVICE, n_epochs_max):
     train_losses = []
 

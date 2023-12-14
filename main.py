@@ -32,7 +32,6 @@ print("Disabled warnings!")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using DEVICE: {DEVICE}")
 
-FREEZE_PRETRAINED_ENCODER = True
 CONTRASTIVE_LEARNING_MAX_EPOCHS = 500
 SUPERVISED_LEARNING_MAX_EPOCHS = 100
 
@@ -40,7 +39,7 @@ FRACTION_LABELED = 0.1
 CORRUPTION_RATE = 0.3
 BATCH_SIZE = 256
 ALL_DIDS = [11, 14, 15, 16, 18, 22, 23, 29, 31, 37, 50, 54, 188, 458, 469, 1049, 1050, 1063, 1068, 1510, 1494, 1480, 1462, 1464, 6332, 23381, 40966, 40982, 40994, 40975]
-SEEDS = [614579, 336466, 974761, 450967, 743562, 767734]
+SEEDS = [614579, 336466, 974761, 450967, 743562]
 CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr']
 CORRUPT_LOCATIONS = ['rand_feats', 'leastCorr_feats', 'mostCorr_feats']
 ALL_METHODS = ['no_pretrain'] + [f'{i}-{j}' for i in CORRUPT_METHODS for j in CORRUPT_LOCATIONS]
@@ -55,9 +54,8 @@ if __name__ == "__main__":
     with open(res_file, "w") as res_f:
         res_f.write(f"Experiment specs: Corruption rate: {CORRUPTION_RATE}; Fraction of data labeled: {FRACTION_LABELED};" +  
                     f"Number of seeds: {len(SEEDS)};" + 
-                    f"contrastive learning max epochs: {CONTRASTIVE_LEARNING_MAX_EPOCHS};" + 
-                    f"supervised learning max epochs: {SUPERVISED_LEARNING_MAX_EPOCHS};" + 
-                    f"whether freeze pretrained encoders: {FREEZE_PRETRAINED_ENCODER}.\n")
+                    f"contrastive learning epochs: {CONTRASTIVE_LEARNING_MAX_EPOCHS};" + 
+                    f"supervised learning epochs: {SUPERVISED_LEARNING_MAX_EPOCHS}.\n")
 
     # OpenML dataset
     all_datasets = load_openml_list(ALL_DIDS)
@@ -114,7 +112,9 @@ if __name__ == "__main__":
                 supervised_loss_histories[key] = {}
 
             # Firstly, train the supervised learning model on the labeled subset
-            supervised_optimizers['no_pretrain'] = Adam(models['no_pretrain'].parameters(), lr=0.001)    
+            # freeze the supervised learning encoder as initialized
+            models['no_pretrain'].freeze_encoder()
+            supervised_optimizers['no_pretrain'] = Adam(filter(lambda p: p.requires_grad, models['no_pretrain'].parameters()), lr=0.001)    
             print(f"Supervised learning for no_pretrain...")
             train_losses = train_classification(models['no_pretrain'], 
                                                 supervised_sampler, 
@@ -165,8 +165,7 @@ if __name__ == "__main__":
             for corrupt_method in CORRUPT_METHODS:
                 for corrupt_loc in CORRUPT_LOCATIONS:
                     method_key = f"{corrupt_method}-{corrupt_loc}"
-                    if FREEZE_PRETRAINED_ENCODER:
-                        models[method_key].freeze_encoder()
+                    models[method_key].freeze_encoder()
                     supervised_optimizers[method_key] = Adam(filter(lambda p: p.requires_grad, models[method_key].parameters()), lr=0.001)
                     supervised_loss_histories[method_key] = {}
 
