@@ -1,37 +1,41 @@
-Experiment specs: Corruption rate: 0.3; Fraction of data labeled: 0.1; Number of seeds: 5; Contrastive learning epochs: 500; Supervised learning epochs: 100.
-Dataset: balance-scale (11) with feature importance range 0.04
-no_pretrain accuracy avg 85.60; std 5.59 |  rand_corr-rand_feats accuracy avg 83.84; std 1.18 |  cls_corr-rand_feats accuracy avg 85.92; std 2.41 |  orc_corr-rand_feats accuracy avg 91.52; std 2.61 |  
-Dataset: mfeat-fourier (14) with feature importance range 0.38
-no_pretrain accuracy avg 60.90; std 1.42 |  rand_corr-rand_feats accuracy avg 73.90; std 2.19 |  cls_corr-rand_feats accuracy avg 75.30; std 2.35 |  orc_corr-rand_feats accuracy avg 79.35; std 1.96 |  
-Dataset: breast-w (15) with feature importance range 0.64
-no_pretrain accuracy avg 95.57; std 1.23 |  rand_corr-rand_feats accuracy avg 95.43; std 0.57 |  cls_corr-rand_feats accuracy avg 96.14; std 1.73 |  orc_corr-rand_feats accuracy avg 97.43; std 0.73 |  
-Dataset: mfeat-karhunen (16) with feature importance range 0.26
-no_pretrain accuracy avg 75.10; std 2.79 |  rand_corr-rand_feats accuracy avg 93.05; std 0.33 |  cls_corr-rand_feats accuracy avg 91.65; std 0.98 |  orc_corr-rand_feats accuracy avg 95.95; std 1.03 |  
+Experiment specs: Corruption rate: 0.4; Fraction of data labeled: 0.2; Number of seeds: 5; Contrastive learning epochs: 500; Supervised learning epochs: 100.
+Dataset: balance-scale (11) with feature importance range 0.06
+no_pretrain accuracy avg 83.20; std 2.63 |  rand_corr-rand_feats accuracy avg 86.24; std 1.63 |  cls_corr-rand_feats accuracy avg 86.88; std 2.80 |  orc_corr-rand_feats accuracy avg 88.00; std 1.68 |  
+Dataset: mfeat-fourier (14) with feature importance range 0.37
+no_pretrain accuracy avg 57.90; std 1.20 |  rand_corr-rand_feats accuracy avg 72.20; std 2.51 |  cls_corr-rand_feats accuracy avg 73.75; std 2.15 |  orc_corr-rand_feats accuracy avg 81.45; std 1.00 |  
+Dataset: breast-w (15) with feature importance range 0.63
+no_pretrain accuracy avg 95.29; std 2.05 |  rand_corr-rand_feats accuracy avg 96.57; std 1.46 |  cls_corr-rand_feats accuracy avg 96.57; std 2.19 |  orc_corr-rand_feats accuracy avg 96.57; std 2.04 |  
+Dataset: mfeat-karhunen (16) with feature importance range 0.24
+no_pretrain accuracy avg 63.95; std 0.86 |  rand_corr-rand_feats accuracy avg 88.80; std 1.50 |  cls_corr-rand_feats accuracy avg 89.75; std 1.24 |  orc_corr-rand_feats accuracy avg 96.15; std 1.38 |  
 Dataset: mfeat-morphological (18) with feature importance range 0.89
-no_pretrain accuracy avg 70.15; std 1.06 |  rand_corr-rand_feats accuracy avg 70.10; std 1.76 |  cls_corr-rand_feats accuracy avg 69.40; std 2.41 |  orc_corr-rand_feats accuracy avg 72.45; std 1.77 |  
-Dataset: mfeat-zernike (22) with feature importance range 0.91
-no_pretrain accuracy avg 69.55; std 1.53 |  rand_corr-rand_feats accuracy avg 73.60; std 2.14 |  cls_corr-rand_feats accuracy avg 73.85; std 1.28 |  orc_corr-rand_feats accuracy avg 80.50; std 1.37 |  
-Dataset: diabetes (37) with feature importance range 0.32
-no_pretrain accuracy avg 70.65; std 4.94 |  rand_corr-rand_feats accuracy avg 69.09; std 1.51 |  cls_corr-rand_feats accuracy avg 71.43; std 4.77 |  orc_corr-rand_feats accuracy avg 71.43; std 3.34 |  
+no_pretrain accuracy avg 49.95; std 7.60 |  rand_corr-rand_feats accuracy avg 63.80; std 3.14 |  cls_corr-rand_feats accuracy avg 61.05; std 6.56 |  orc_corr-rand_feats accuracy avg 68.65; std 3.01 |  
+Dataset: mfeat-zernike (22) with feature importance range 0.92
+no_pretrain accuracy avg 64.50; std 2.53 |  rand_corr-rand_feats accuracy avg 73.15; std 1.33 |  cls_corr-rand_feats accuracy avg 73.85; std 1.37 |  orc_corr-rand_feats accuracy avg 81.60; std 1.59 |  
+Dataset: diabetes (37) with feature importance range 0.34
+no_pretrain accuracy avg 72.60; std 2.77 |  rand_corr-rand_feats accuracy avg 75.71; std 3.62 |  cls_corr-rand_feats accuracy avg 76.88; std 3.33 |  orc_corr-rand_feats accuracy avg 76.62; std 3.87 |  
 Dataset: vehicle (54) with feature importance range 0.77
-no_pretrain accuracy avg 66.35; std 5.76 |  rand_corr-rand_feats accuracy avg 65.53; std 6.85 |  cls_corr-rand_feats accuracy avg 70.12; std 5.13 |  orc_corr-rand_feats accuracy avg 72.82; std 5.20 |  
-Dataset: analcatdata_authorship (458) with feature importance range 0.37
-no_pretrain accuracy avg 90.06; std 3.77 |  rand_corr-rand_feats accuracy avg 99.53; std 0.44 |  cls_corr-rand_feats accuracy avg 98.46; std 0.60 |  orc_corr-rand_feats accuracy avg 98.70; std 0.78 |  
-Dataset: pc4 (1049) with feature importance range 0.67
-no_pretrain accuracy avg 87.74; std 0.93 |  rand_corr-rand_feats accuracy avg 84.59; std 1.15 |  cls_corr-rand_feats accuracy avg 85.00; std 1.60 |  orc_corr-rand_feats accuracy avg 85.75; std 0.98 |  
-Dataset: pc3 (1050) with feature importance range 0.73
-no_pretrain accuracy avg 87.35; std 0.77 |  rand_corr-rand_feats accuracy avg 86.07; std 0.96 |  cls_corr-rand_feats accuracy avg 86.33; std 0.68 |  orc_corr-rand_feats accuracy avg 86.33; std 1.50 |  
-Dataset: kc2 (1063) with feature importance range 0.60
-no_pretrain accuracy avg 81.52; std 1.77 |  rand_corr-rand_feats accuracy avg 81.33; std 2.53 |  cls_corr-rand_feats accuracy avg 80.00; std 2.89 |  orc_corr-rand_feats accuracy avg 80.57; std 2.45 |  
-Dataset: pc1 (1068) with feature importance range 0.80
-no_pretrain accuracy avg 90.99; std 0.99 |  rand_corr-rand_feats accuracy avg 91.53; std 2.23 |  cls_corr-rand_feats accuracy avg 92.25; std 1.44 |  orc_corr-rand_feats accuracy avg 91.35; std 2.25 |  
-Dataset: banknote-authentication (1462) with feature importance range 0.24
-no_pretrain accuracy avg 97.60; std 1.50 |  rand_corr-rand_feats accuracy avg 97.38; std 1.01 |  cls_corr-rand_feats accuracy avg 95.78; std 1.07 |  orc_corr-rand_feats accuracy avg 98.11; std 0.58 |  
+no_pretrain accuracy avg 49.65; std 4.35 |  rand_corr-rand_feats accuracy avg 51.18; std 6.00 |  cls_corr-rand_feats accuracy avg 57.53; std 3.69 |  orc_corr-rand_feats accuracy avg 67.18; std 3.78 |  
+Dataset: analcatdata_authorship (458) with feature importance range 0.26
+no_pretrain accuracy avg 84.02; std 3.83 |  rand_corr-rand_feats accuracy avg 99.64; std 0.29 |  cls_corr-rand_feats accuracy avg 99.17; std 0.80 |  orc_corr-rand_feats accuracy avg 99.53; std 0.44 |  
+Dataset: pc4 (1049) with feature importance range 0.61
+no_pretrain accuracy avg 87.74; std 0.34 |  rand_corr-rand_feats accuracy avg 86.30; std 1.17 |  cls_corr-rand_feats accuracy avg 86.64; std 1.06 |  orc_corr-rand_feats accuracy avg 87.05; std 1.86 |  
+Dataset: pc3 (1050) with feature importance range 0.75
+no_pretrain accuracy avg 89.78; std 0.00 |  rand_corr-rand_feats accuracy avg 89.33; std 0.59 |  cls_corr-rand_feats accuracy avg 88.95; std 0.89 |  orc_corr-rand_feats accuracy avg 89.58; std 0.63 |  
+Dataset: kc2 (1063) with feature importance range 0.70
+no_pretrain accuracy avg 82.10; std 2.20 |  rand_corr-rand_feats accuracy avg 82.67; std 3.04 |  cls_corr-rand_feats accuracy avg 83.05; std 2.36 |  orc_corr-rand_feats accuracy avg 82.86; std 2.95 |  
+Dataset: pc1 (1068) with feature importance range 0.79
+no_pretrain accuracy avg 93.24; std 0.00 |  rand_corr-rand_feats accuracy avg 93.06; std 0.46 |  cls_corr-rand_feats accuracy avg 93.33; std 0.18 |  orc_corr-rand_feats accuracy avg 93.24; std 0.28 |  
+Dataset: banknote-authentication (1462) with feature importance range 0.21
+no_pretrain accuracy avg 88.22; std 1.79 |  rand_corr-rand_feats accuracy avg 91.85; std 2.52 |  cls_corr-rand_feats accuracy avg 88.87; std 1.67 |  orc_corr-rand_feats accuracy avg 95.42; std 1.76 |  
 Dataset: blood-transfusion-service-center (1464) with feature importance range 0.73
-no_pretrain accuracy avg 77.73; std 2.52 |  rand_corr-rand_feats accuracy avg 72.13; std 3.36 |  cls_corr-rand_feats accuracy avg 70.00; std 4.02 |  orc_corr-rand_feats accuracy avg 72.53; std 3.94 |  
-Dataset: qsar-biodeg (1494) with feature importance range 0.88
-no_pretrain accuracy avg 83.60; std 2.11 |  rand_corr-rand_feats accuracy avg 83.32; std 1.06 |  cls_corr-rand_feats accuracy avg 83.51; std 0.55 |  orc_corr-rand_feats accuracy avg 85.50; std 1.39 |  
-Dataset: wdbc (1510) with feature importance range 0.79
-no_pretrain accuracy avg 92.28; std 1.40 |  rand_corr-rand_feats accuracy avg 92.81; std 1.51 |  cls_corr-rand_feats accuracy avg 94.04; std 1.29 |  orc_corr-rand_feats accuracy avg 95.96; std 1.31 |  
-Dataset: MiceProtein (40966) with feature importance range 0.62
-no_pretrain accuracy avg 67.59; std 2.79 |  rand_corr-rand_feats accuracy avg 71.11; std 3.04 |  cls_corr-rand_feats accuracy avg 70.74; std 4.09 |  orc_corr-rand_feats accuracy avg 85.09; std 2.26 |  
+no_pretrain accuracy avg 77.20; std 2.40 |  rand_corr-rand_feats accuracy avg 77.33; std 2.35 |  cls_corr-rand_feats accuracy avg 77.60; std 1.96 |  orc_corr-rand_feats accuracy avg 78.27; std 2.37 |  
+Dataset: qsar-biodeg (1494) with feature importance range 0.91
+no_pretrain accuracy avg 77.54; std 3.67 |  rand_corr-rand_feats accuracy avg 83.51; std 1.39 |  cls_corr-rand_feats accuracy avg 82.65; std 1.57 |  orc_corr-rand_feats accuracy avg 85.88; std 1.01 |  
+Dataset: wdbc (1510) with feature importance range 0.76
+no_pretrain accuracy avg 94.04; std 1.40 |  rand_corr-rand_feats accuracy avg 96.49; std 0.78 |  cls_corr-rand_feats accuracy avg 95.44; std 1.70 |  orc_corr-rand_feats accuracy avg 97.54; std 1.40 |  
+Dataset: MiceProtein (40966) with feature importance range 0.66
+no_pretrain accuracy avg 54.81; std 5.68 |  rand_corr-rand_feats accuracy avg 56.85; std 3.44 |  cls_corr-rand_feats accuracy avg 61.11; std 2.73 |  orc_corr-rand_feats accuracy avg 80.65; std 1.64 |  
+Dataset: steel-plates-fault (40982) with feature importance range 0.99
+no_pretrain accuracy avg 55.42; std 2.83 |  rand_corr-rand_feats accuracy avg 64.27; std 2.62 |  cls_corr-rand_feats accuracy avg 64.63; std 2.54 |  orc_corr-rand_feats accuracy avg 70.13; std 1.82 |  
+Dataset: climate-model-simulation-crashes (40994) with feature importance range 0.09
+no_pretrain accuracy avg 91.67; std 0.00 |  rand_corr-rand_feats accuracy avg 91.67; std 0.00 |  cls_corr-rand_feats accuracy avg 91.67; std 0.00 |  orc_corr-rand_feats accuracy avg 91.67; std 0.00 |  

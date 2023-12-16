@@ -12,9 +12,9 @@ from torch.optim import Adam
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CONTRASTIVE_LEARNING_MAX_EPOCHS = 500
 SUPERVISED_LEARNING_MAX_EPOCHS = 100
-CLS_CORR_REFRESH_SAMPLER_PERIOD = 50
-FRACTION_LABELED = 0.1
-CORRUPTION_RATE = 0.3
+CLS_CORR_REFRESH_SAMPLER_PERIOD = 25
+FRACTION_LABELED = 0.2
+CORRUPTION_RATE = 0.4
 BATCH_SIZE = 256
 SEEDS = [614579, 336466, 974761, 450967, 743562]
 
@@ -120,4 +120,4 @@ def compute_feature_mutual_influences(data):
     return feat_impt_symm, feat_impt_range_max
 
 def initialize_adam_optimizer(model):
-    return Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
+    return Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0001)
