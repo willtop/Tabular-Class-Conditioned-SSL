@@ -3,21 +3,30 @@ import numpy as np
 import pandas as pd
 import torch
 import openml
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.compose import make_column_transformer
 import xgboost as xgb
 import time
 from torch.optim import Adam
 
 # Global parameters
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-CONTRASTIVE_LEARNING_MAX_EPOCHS = 1000
-SUPERVISED_LEARNING_MAX_EPOCHS = 100
-CLS_CORR_REFRESH_SAMPLER_PERIOD = 20
-FRACTION_LABELED = 0.25
-CORRUPTION_RATE = 0.5
+CONTRASTIVE_LEARNING_MAX_EPOCHS = 750
+SUPERVISED_LEARNING_MAX_EPOCHS = 150
+CLS_CORR_REFRESH_SAMPLER_PERIOD = 10
+FRACTION_LABELED = 0.3
+CORRUPTION_RATE = 0.4
 BATCH_SIZE = 256
-SEEDS = [614579, 336466, 974761, 450967, 743562]
-
+SEEDS = [614579, 336466, 974761, 450967, 743562, 843198, 502837, 328984]
+XGB_FEATURECORR_CONFIG = {
+    "n_estimators": 100, 
+    "max_depth": 10, 
+    "eta": 0.1, 
+    "subsample": 0.7, 
+    "colsample_bytree": 0.8,
+    "enable_categorical": True,
+    "tree_method": "hist"
+}
 
 def fix_seed(seed):
     random.seed(seed)
@@ -45,9 +54,7 @@ def load_openml_list(DIDS):
             X, y, categorical_indicator, attribute_names = dataset.get_data(
                 dataset_format="dataframe", target=dataset.default_target_attribute
             )
-            if np.any(categorical_indicator):
-                print(f"Dataset {entry['name']} with did {int(entry.did)} has at least one categorical feature, skipping...")
-                continue
+            
             assert isinstance(X, pd.DataFrame) and isinstance(y, pd.Series)        
 
             order = np.arange(y.shape[0])
@@ -57,7 +64,13 @@ def load_openml_list(DIDS):
 
             assert X is not None
 
-        datasets += [[entry['name'], entry.did, X, y]]
+        datasets += [[entry['name'], 
+                      entry.did, 
+                      int(entry['NumberOfClasses']), 
+                      np.sum(categorical_indicator), 
+                      len(X.columns), 
+                      X, 
+                      y]]
 
     return datasets
 
@@ -75,44 +88,64 @@ def preprocess_datasets(train_data, test_data, normalize_numerical_features):
             continue
         # fill the missing values
         if train_data[col].isnull().any() or test_data[col].isnull().any():
+            # for categorical features, fill with the mode in the training data
+            if train_data[col].dtype.name == "category":
+                val_fill = train_data[col].mode(dropna=True)[0]
             # for numerical features, fill with the mean of the training data
-            val_fill = train_data[col].mean(skipna=True)
+            else:
+                val_fill = train_data[col].mean(skipna=True)
             train_data[col].fillna(val_fill, inplace=True)
             test_data[col].fillna(val_fill, inplace=True)
-
+   
     if normalize_numerical_features:
         # z-score transform numerical values
         scaler = StandardScaler()
-        train_data = scaler.fit_transform(train_data)
-        test_data = scaler.transform(test_data)
+        non_categorical_cols = train_data.select_dtypes(exclude='category').columns
+        if len(non_categorical_cols) == 0:
+            print("No numerical features presen! Skip numerical z-score normalization.")
+        else:
+            train_data[non_categorical_cols] = scaler.fit_transform(train_data[non_categorical_cols])
+            test_data[non_categorical_cols] = scaler.transform(test_data[non_categorical_cols])   
 
     print(f"Data preprocess finished! Dropped {len(features_dropped)} features: {features_dropped}. {'Normalized numerical features.' if normalize_numerical_features else ''}")
+    
+    # retain the pandas dataframe format for later one-hot encoder
+    return train_data, test_data
 
-    # Since all numerical features, convert them into numpy array here
-    return np.array(train_data), np.array(test_data)
+def fit_one_hot_encoder(one_hot_encoder_raw, train_data):
+    categorical_cols = train_data.select_dtypes(include='category').columns
+    one_hot_encoder = make_column_transformer((one_hot_encoder_raw, categorical_cols), remainder='passthrough')
+    one_hot_encoder.fit(train_data)
+    return one_hot_encoder
 
-def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled):
+def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled, one_hot_encoder):
     # use the classifier to predict for all data first
     classifier_model.eval()
     with torch.no_grad():
-        pred_logits = classifier_model.get_classification_prediction_logits(torch.tensor(data,dtype=torch.float32).to(DEVICE)).cpu().numpy()
+        pred_logits = classifier_model.get_classification_prediction_logits(
+                            torch.tensor(one_hot_encoder.transform(data).astype(float), dtype=torch.float32).to(DEVICE)).cpu().numpy()
     preds = np.argmax(pred_logits, axis=1)
     return np.where(mask_labeled, targets, preds)
 
+# expect a pandas dataframe
+# fit xgboost models on pandas dataframe and series
 def compute_feature_mutual_influences(data):
-    assert isinstance(data, np.ndarray)
-    # initialize a simple xgboost regression model
-    xgb_reg = xgb.XGBRegressor(n_estimators=100, max_depth=10, eta=0.1, subsample=0.7, colsample_bytree=0.8)
+    assert isinstance(data, pd.DataFrame)
+    label_encoder_tmp = LabelEncoder()
     feat_impt = []
     start_time = time.time()
     feat_impt_range_max = 0
-    for i in range(np.shape(data)[1]):
-        xgb_reg.fit(np.delete(data, obj=i, axis=1), data[:,i])
-        # somehow, the feature importance score doesn't reflect the full mapping from one column to a target as its copy
-        # the feature importances obtained from the booster.get_score() method doesn't reflect such relationship at all
-        # the xgb_obj.feature_importances_ reflect that somehow
-        feat_impt_range_max = max(feat_impt_range_max, np.ptp(xgb_reg.feature_importances_)) 
-        feat_impt.append(np.insert(xgb_reg.feature_importances_, obj=i, values=0))
+    for i, col in enumerate(data.columns):
+        if data[col].dtype == "category":
+            xgb_model = xgb.XGBClassifier(**XGB_FEATURECORR_CONFIG)
+            target = label_encoder_tmp.fit_transform(data[col])
+        else:
+            xgb_model = xgb.XGBRegressor(**XGB_FEATURECORR_CONFIG)
+            target = data[col]
+        xgb_model.fit(data.drop(col, axis=1), target)
+        # the xgb_obj.feature_importances_ is the normalized score for gain
+        feat_impt_range_max = max(feat_impt_range_max, np.ptp(xgb_model.feature_importances_)) 
+        feat_impt.append(np.insert(xgb_model.feature_importances_, obj=i, values=0))
     feat_impt = np.array(feat_impt)
     # take the summation of its transpose to get the importance both ways 
     feat_impt_symm = feat_impt + feat_impt.transpose()
@@ -120,4 +153,4 @@ def compute_feature_mutual_influences(data):
     return feat_impt_symm, feat_impt_range_max
 
 def initialize_adam_optimizer(model):
-    return Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0001)
+    return Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)

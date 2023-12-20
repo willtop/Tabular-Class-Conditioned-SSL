@@ -6,13 +6,15 @@ from utils import *
 
 class BasicSampler():
     def __init__(self, data, target):
-        assert isinstance(data, np.ndarray)
-        self.data = data
+        assert isinstance(data, pd.DataFrame)
+        self.data = np.array(data, dtype='object')
+        self.columns = data.columns
         self.target = target
         self.n_samples = np.shape(self.data)[0]
         self.n_features = np.shape(self.data)[1]
         self.n_batches = int(np.ceil(self.n_samples/BATCH_SIZE))
         self.batch_end_pointer = 0
+        assert len(self.columns) == self.n_features
         if self.target is not None:
             assert self.target.ndim == 1, "expecting targets to be in a row vector."
 
@@ -47,7 +49,8 @@ class BasicSampler():
         else:
             self.batch_end_pointer = new_batch_end_pointer
     
-        return np.array(data_batch_1), np.array(data_batch_2)
+        return np.array(data_batch_1, dtype='object'), \
+                np.array(data_batch_2, dtype='object')
     
     # sample from each column of the data independently
     # achieve uniform value sampling from each feature
