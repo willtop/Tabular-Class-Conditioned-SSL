@@ -1,5 +1,9 @@
-Experiment specs: Corruption rate: 0.4; Fraction of data labeled: 0.3; Number of seeds: 2; Contrastive learning epochs: 100; Supervised learning epochs: 100.
-Dataset: cmc (23) with 3 classes, 9 features (7 categorical), feature importance range 0.22
-no_pretrain accuracy avg 52.71; std 2.20 |  rand_corr-rand_feats accuracy avg 54.75; std 0.51 |  cls_corr-rand_feats accuracy avg 55.08; std 0.17 |  orc_corr-rand_feats accuracy avg 54.92; std 2.37 |  
-Dataset: credit-approval (29) with 2 classes, 15 features (9 categorical), feature importance range 0.79
-no_pretrain accuracy avg 81.88; std 0.72 |  rand_corr-rand_feats accuracy avg 80.43; std 1.45 |  cls_corr-rand_feats accuracy avg 83.33; std 1.45 |  orc_corr-rand_feats accuracy avg 83.70; std 0.36 |  
+Experiment specs: Corruption rate: 0.4; Fraction of data labeled: 0.3; Number of seeds: 8; Contrastive learning epochs: 750; Supervised learning epochs: 150.
+Dataset: balance-scale (11) with 3 classes, 4 features (0 categorical), feature importance range 0.02
+no_pretrain accuracy avg 91.10; std 1.62 |  rand_corr-rand_feats accuracy avg 90.20; std 2.52 |  cls_corr-rand_feats accuracy avg 91.10; std 2.41 |  orc_corr-rand_feats accuracy avg 94.60; std 2.07 |  
+Dataset: mfeat-fourier (14) with 10 classes, 76 features (0 categorical), feature importance range 0.36
+no_pretrain accuracy avg 67.69; std 3.57 |  rand_corr-rand_feats accuracy avg 76.97; std 1.14 |  cls_corr-rand_feats accuracy avg 78.47; std 0.82 |  orc_corr-rand_feats accuracy avg 80.66; std 1.16 |  
+Dataset: breast-w (15) with 2 classes, 9 features (0 categorical), feature importance range 0.60
+no_pretrain accuracy avg 95.71; std 1.92 |  rand_corr-rand_feats accuracy avg 96.43; std 1.13 |  cls_corr-rand_feats accuracy avg 96.34; std 1.26 |  orc_corr-rand_feats accuracy avg 97.05; std 1.21 |  
+Dataset: mfeat-karhunen (16) with 10 classes, 64 features (0 categorical), feature importance range 0.25
+no_pretrain accuracy avg 82.19; std 2.92 |  rand_corr-rand_feats accuracy avg 95.12; std 1.32 |  cls_corr-rand_feats accuracy avg 94.47; std 0.94 |  orc_corr-rand_feats accuracy avg 97.12; std 1.02 |  

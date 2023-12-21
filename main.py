@@ -31,7 +31,7 @@ print("Disabled warnings!")
 print(f"Using DEVICE: {DEVICE}")
 
 
-ALL_DIDS = [23, 29, 31, 37, 50, 54, 188, 458, 469, 1049, 1050, 1063, 1068, 1510, 1494, 1480, 1462, 1464, 6332, 23381, 40966, 40982, 40994, 40975]
+ALL_DIDS = [11, 14, 15, 16, 18, 22, 23, 29, 31, 37, 50, 54, 188, 458, 469, 1049, 1050, 1063, 1068, 1510, 1494, 1480, 1462, 1464, 6332, 23381, 40966, 40982, 40994, 40975]
 
 CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr']
 CORRUPT_LOCATIONS = ['rand_feats']#, 'leastCorr_feats', 'mostCorr_feats']
