@@ -31,20 +31,23 @@ print("Disabled warnings!")
 print(f"Using DEVICE: {DEVICE}")
 
 
-ALL_DIDS = [11, 14, 15, 16, 18, 22, 23, 29, 31, 37, 50, 54, 188, 458, 469, 1049, 1050, 1063, 1068, 1510, 1494, 1480, 1462, 1464, 6332, 23381, 40966, 40982, 40994, 40975]
+ALL_DIDS = [11, 14, 15, 16, 18, 22, 
+            23, 29, 31, 37, 50, 54, 
+            188, 458, 469, 1049, 1050, 1063, 
+            1068, 1510, 1494, 1480, 1462, 1464, 
+            6332, 23381, 40966, 40982, 40994, 40975]
 
 CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr']
-CORRUPT_LOCATIONS = ['rand_feats']#, 'leastCorr_feats', 'mostCorr_feats']
+CORRUPT_LOCATIONS = ['rand_feats', 'leastCorr_feats', 'mostCorr_feats']
 ALL_METHODS = ['no_pretrain'] + [f'{i}-{j}' for i in CORRUPT_METHODS for j in CORRUPT_LOCATIONS]
 
-if __name__ == "__main__":    
-    res_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), \
-                                'experiments', \
-                                "accuracies.txt")
-    os.makedirs(os.path.dirname(res_file), exist_ok=True) 
+if __name__ == "__main__": 
+    res_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'experiments')  
+    spec_file = os.path.join(res_dir, "experimentSpecs.txt")
+    os.makedirs(res_dir, exist_ok=True) 
     # clear the file
-    print(f"Preparing and clearing file {res_file} for writing results...")
-    with open(res_file, "w") as res_f:
+    print(f"Preparing and clearing file {spec_file} for writing specs...")
+    with open(spec_file, "w") as res_f:
         res_f.write(f"Experiment specs: Corruption rate: {CORRUPTION_RATE}; " +
                     f"Fraction of data labeled: {FRACTION_LABELED}; " +  
                     f"Number of seeds: {len(SEEDS)}; " + 
@@ -55,9 +58,9 @@ if __name__ == "__main__":
     all_datasets = load_openml_list(ALL_DIDS)
 
     for ds in all_datasets:
-        dataset_name, dataset_did, n_classes, n_cat_feats, n_feats, data, target = ds
-        print(f"Loaded dataset: {dataset_name} ({dataset_did}), with data shape: {data.shape} (including {n_cat_feats} categorical features), and target shape: {target.shape}")
-        assert len(data.select_dtypes(include='category').columns)==n_cat_feats 
+        dataset_name, dataset_did, n_classes, n_cat_feats_before_processing, n_feats_before_processing, data, target = ds
+        print(f"Loaded dataset: {dataset_name} ({dataset_did}), with data shape: {data.shape} (including {n_cat_feats_before_processing} categorical features), and target shape: {target.shape}")
+        assert len(data.select_dtypes(include='category').columns)==n_cat_feats_before_processing 
         accuracies = {}
         for key in ALL_METHODS:
             accuracies[key] = []       
@@ -96,7 +99,6 @@ if __name__ == "__main__":
             # train xgboost to learn predicting one feature based on the rest
             # use learned feature importance to identify feature correlations
             feat_impt, feat_impt_range = compute_feature_mutual_influences(train_data)
-            assert np.shape(feat_impt) == (n_feats, n_feats)
 
             # prepare models
             models, contrastive_loss_histories, supervised_loss_histories = {}, {}, {}
@@ -131,8 +133,8 @@ if __name__ == "__main__":
             mask_generators['rand_feats'] = RandomMaskGenerator(train_data.shape[1])
             mask_generators['leastCorr_feats'] = CorrelationMaskGenerator(train_data.shape[1], high_correlation=False)
             mask_generators['mostCorr_feats'] = CorrelationMaskGenerator(train_data.shape[1], high_correlation=True)
-            mask_generators['leastCorr_feats'].initialize_probabilities(feat_impt)
-            mask_generators['mostCorr_feats'].initialize_probabilities(feat_impt)
+            mask_generators['leastCorr_feats'].initialize_feature_importances(feat_impt)
+            mask_generators['mostCorr_feats'].initialize_feature_importances(feat_impt)
 
 
             ################ Contrastive training #############
@@ -168,14 +170,14 @@ if __name__ == "__main__":
                     accuracies[method_key].append(accuracy)
                     print(f"{method_key} accuracy: {accuracy:.2f}%")
 
-        # write the results to a file        
-        with open(res_file, 'a') as res_f:
-            res_f.write(f"Dataset: {dataset_name} ({dataset_did}) with {n_classes} classes, {n_feats} features ({n_cat_feats} categorical), feature importance range {feat_impt_range:.2f}\n")
-            for method_key in ALL_METHODS:
-                avg_accuracy = np.mean(accuracies[method_key])
-                accuracy_std = np.std(accuracies[method_key])
-                res_f.write(f"{method_key} accuracy avg {avg_accuracy:.2f}; std {accuracy_std:.2f} |  ")
-            res_f.write("\n")
+        # same all the trial accuracy results to numpy file  
+        os.makedirs(os.path.join(res_dir, f"DID_{dataset_did}"), exist_ok=True) 
+        for method_key in ALL_METHODS:
+            np.save(os.path.join(res_dir, f"DID_{dataset_did}", f"{method_key}_accuracies.npy"), accuracies[method_key])  
+
+        # write the dataset specifications into a file 
+        with open(spec_file, 'a') as res_f:
+            res_f.write(f"Dataset completed: {dataset_name} ({dataset_did}) with {n_classes} cls, {n_feats_before_processing} feats ({n_cat_feats_before_processing} categorical), feature importance range {feat_impt_range:.2f}\n")
         
         print(f"{dataset_name} finished!")
 

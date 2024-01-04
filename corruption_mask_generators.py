@@ -22,18 +22,16 @@ class CorrelationMaskGenerator(RandomMaskGenerator):
         self.high_correlation = high_correlation
         self.softmax_temporature = 0.3
 
-    def initialize_probabilities(self, feat_impt):
+    def initialize_feature_importances(self, feat_impt):
         assert np.shape(feat_impt) == (self.n_features, self.n_features)
-        # convert into probabilities
-        feat_impt_prob_tmp = np.exp(feat_impt/self.softmax_temporature)
-        feat_impt_prob_tmp = feat_impt_prob_tmp * (1-np.eye(self.n_features))
-        self.feat_impt_prob = feat_impt_prob_tmp / np.sum(feat_impt_prob_tmp, axis=1, keepdims=True)
         if not self.high_correlation:
             for i in range(self.n_features):
                 # simply flip the indices and reassign the probability values
-                feat_impt_prob_tmp = np.delete(self.feat_impt_prob[i], obj=i)
-                feat_impt_prob_tmp = np.sort(feat_impt_prob_tmp)[::-1][np.argsort(np.argsort(feat_impt_prob_tmp))]
-                self.feat_impt_prob[i] = np.insert(feat_impt_prob_tmp, obj=i, values=0)
+                # first remove diagonal entries and then add them back in (since they shouldn't be in the order)
+                feat_impt_row_tmp = np.delete(feat_impt[i], obj=i)
+                feat_impt_row_tmp = np.sort(feat_impt_row_tmp)[::-1][np.argsort(np.argsort(feat_impt_row_tmp))]
+                feat_impt[i] = np.insert(feat_impt_row_tmp, obj=i, values=0)
+        self.feat_impt = feat_impt
         return 
     
     def get_masks(self, n_samples):
@@ -45,9 +43,8 @@ class CorrelationMaskGenerator(RandomMaskGenerator):
             selected_idxes.append(selected_id)
             remaining_idxes = np.delete(remaining_idxes, obj=selected_id)
             for _ in range(1, self.corruption_len):
-                sampling_prob_onerow_tmp = self.feat_impt_prob[selected_idxes]
-                sampling_prob_onerow_tmp = sampling_prob_onerow_tmp[:,remaining_idxes]
-                # consider the weakest (or strongest) link of each feature to features already selected
+                sampling_prob_onerow_tmp = self.feat_impt[selected_idxes][:,remaining_idxes]
+                # consider the strongest link from features already selected
                 sampling_prob_onerow = np.min(sampling_prob_onerow_tmp, axis=0)
                 selected_id = np.random.choice(remaining_idxes, p=sampling_prob_onerow/np.sum(sampling_prob_onerow))
                 selected_idxes.append(selected_id)

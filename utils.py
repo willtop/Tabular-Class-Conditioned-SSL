@@ -11,13 +11,16 @@ from torch.optim import Adam
 
 # Global parameters
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-CONTRASTIVE_LEARNING_MAX_EPOCHS = 750
-SUPERVISED_LEARNING_MAX_EPOCHS = 150
+CONTRASTIVE_LEARNING_MAX_EPOCHS = 500
+SUPERVISED_LEARNING_MAX_EPOCHS = 100
 CLS_CORR_REFRESH_SAMPLER_PERIOD = 10
 FRACTION_LABELED = 0.3
 CORRUPTION_RATE = 0.4
 BATCH_SIZE = 256
-SEEDS = [614579, 336466, 974761, 450967, 743562, 843198, 502837, 328984]
+SEEDS = [614579, 336466, 974761, 450967, 743562, 843198, 502837, 328984, 
+         123791, 328039, 612898, 128901, 132672, 734768, 902189, 237897]
+assert len(SEEDS) == len(set(SEEDS))
+
 XGB_FEATURECORR_CONFIG = {
     "n_estimators": 100, 
     "max_depth": 10, 
@@ -134,7 +137,7 @@ def compute_feature_mutual_influences(data):
     label_encoder_tmp = LabelEncoder()
     feat_impt = []
     start_time = time.time()
-    feat_impt_range_max = 0
+    feat_impt_range_avg = 0
     for i, col in enumerate(data.columns):
         if data[col].dtype == "category":
             xgb_model = xgb.XGBClassifier(**XGB_FEATURECORR_CONFIG)
@@ -144,13 +147,12 @@ def compute_feature_mutual_influences(data):
             target = data[col]
         xgb_model.fit(data.drop(col, axis=1), target)
         # the xgb_obj.feature_importances_ is the normalized score for gain
-        feat_impt_range_max = max(feat_impt_range_max, np.ptp(xgb_model.feature_importances_)) 
+        feat_impt_range_avg += np.ptp(xgb_model.feature_importances_)
         feat_impt.append(np.insert(xgb_model.feature_importances_, obj=i, values=0))
     feat_impt = np.array(feat_impt)
-    # take the summation of its transpose to get the importance both ways 
-    feat_impt_symm = feat_impt + feat_impt.transpose()
-    print(f"Feature influences computated for {len(data)} samples each with {np.shape(data)[1]} features! Took {time.time()-start_time:.2f} seconds. The max range is {feat_impt_range_max}")
-    return feat_impt_symm, feat_impt_range_max
+    feat_impt_range_avg = feat_impt_range_avg/len(data.columns)
+    print(f"Feature importances computated for {len(data)} samples each with {np.shape(data)[1]} features! Took {time.time()-start_time:.2f} seconds. The average range is {feat_impt_range_avg}")
+    return feat_impt, feat_impt_range_avg
 
 def initialize_adam_optimizer(model):
     return Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
