@@ -44,9 +44,13 @@ class CorrelationMaskGenerator(RandomMaskGenerator):
             remaining_idxes = np.delete(remaining_idxes, obj=selected_id)
             for _ in range(1, self.corruption_len):
                 sampling_prob_onerow_tmp = self.feat_impt[selected_idxes][:,remaining_idxes]
-                # consider the strongest link from features already selected
+                # consider the weakest link from features already selected
                 sampling_prob_onerow = np.min(sampling_prob_onerow_tmp, axis=0)
-                selected_id = np.random.choice(remaining_idxes, p=sampling_prob_onerow/np.sum(sampling_prob_onerow))
+                if np.sum(sampling_prob_onerow) == 0:
+                    # every feature remaining has one zero-connection to at least one feature in the selected set
+                    selected_id  = np.random.choice(remaining_idxes)
+                else:
+                    selected_id = np.random.choice(remaining_idxes, p=sampling_prob_onerow/np.sum(sampling_prob_onerow))
                 selected_idxes.append(selected_id)
                 remaining_idxes = np.delete(remaining_idxes, np.where(remaining_idxes==selected_id))
             assert len(selected_idxes) == self.corruption_len
