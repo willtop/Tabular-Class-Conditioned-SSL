@@ -1,5 +1,6 @@
 import random
 import numpy as np
+import os
 import pandas as pd
 import torch
 import openml
@@ -11,6 +12,8 @@ from torch.optim import Adam
 
 # Global parameters
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+RESULT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'experiments')
+os.makedirs(RESULT_DIR, exist_ok=True)
 CONTRASTIVE_LEARNING_MAX_EPOCHS = 500
 SUPERVISED_LEARNING_MAX_EPOCHS = 100
 CLS_CORR_REFRESH_SAMPLER_PERIOD = 10
@@ -20,6 +23,10 @@ BATCH_SIZE = 256
 SEEDS = [614579, 336466, 974761, 450967, 743562, 843198, 502837, 328984, 
          123791, 328039, 612898, 128901, 132672, 734768, 902189, 237897]
 assert len(SEEDS) == len(set(SEEDS))
+# All the methods to experiment
+CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr']
+CORRUPT_LOCATIONS = ['rand_feats', 'leastCorr_feats', 'mostCorr_feats']
+ALL_METHODS = ['no_pretrain'] + [f'{i}-{j}' for i in CORRUPT_METHODS for j in CORRUPT_LOCATIONS]
 
 XGB_FEATURECORR_CONFIG = {
     "n_estimators": 100, 

@@ -31,29 +31,13 @@ print("Disabled warnings!")
 print(f"Using DEVICE: {DEVICE}")
 
 
-ALL_DIDS = [11, 14, 15, 16, 18, 22, 
-            23, 29, 31, 37, 50, 54, 
-            188, 458, 469, 1049, 1050, 1063, 
-            1068, 1510, 1494, 1480, 1462, 1464, 
-            6332, 23381, 40966, 40982, 40994, 40975]
+ALL_DIDS = [11, 14, 15, 16, 18, 22]
+            #23, 29, 31, 37, 50, 54, 
+            #188, 458, 469, 1049, 1050, 1063, 
+            #1068, 1510, 1494, 1480, 1462, 1464, 
+            #6332, 23381, 40966, 40982, 40994, 40975]
 
-CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr']
-CORRUPT_LOCATIONS = ['rand_feats', 'leastCorr_feats', 'mostCorr_feats']
-ALL_METHODS = ['no_pretrain'] + [f'{i}-{j}' for i in CORRUPT_METHODS for j in CORRUPT_LOCATIONS]
-
-if __name__ == "__main__": 
-    res_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'experiments')  
-    spec_file = os.path.join(res_dir, "experimentSpecs.txt")
-    os.makedirs(res_dir, exist_ok=True) 
-    # clear the file
-    print(f"Preparing and clearing file {spec_file} for writing specs...")
-    with open(spec_file, "w") as res_f:
-        res_f.write(f"Experiment specs: Corruption rate: {CORRUPTION_RATE}; " +
-                    f"Fraction of data labeled: {FRACTION_LABELED}; " +  
-                    f"Number of seeds: {len(SEEDS)}; " + 
-                    f"Contrastive learning epochs: {CONTRASTIVE_LEARNING_MAX_EPOCHS}; " + 
-                    f"Supervised learning epochs: {SUPERVISED_LEARNING_MAX_EPOCHS}.\n")
-
+if __name__ == "__main__":   
     # OpenML dataset
     all_datasets = load_openml_list(ALL_DIDS)
 
@@ -171,14 +155,21 @@ if __name__ == "__main__":
                     print(f"{method_key} accuracy: {accuracy:.2f}%")
 
         # same all the trial accuracy results to numpy file  
-        os.makedirs(os.path.join(res_dir, f"DID_{dataset_did}"), exist_ok=True) 
+        os.makedirs(os.path.join(RESULT_DIR, f"DID_{dataset_did}"), exist_ok=True) 
         for method_key in ALL_METHODS:
-            np.save(os.path.join(res_dir, f"DID_{dataset_did}", f"{method_key}_accuracies.npy"), accuracies[method_key])  
+            np.save(os.path.join(RESULT_DIR, f"DID_{dataset_did}", f"{method_key}_accuracies.npy"), accuracies[method_key])  
 
-        # write the dataset specifications into a file 
-        with open(spec_file, 'a') as res_f:
-            res_f.write(f"Dataset completed: {dataset_name} ({dataset_did}) with {n_classes} cls, {n_feats_before_processing} feats ({n_cat_feats_before_processing} categorical), feature importance range {feat_impt_range:.2f}\n")
+        # write the dataset specifications and experiment hyperparameters into a file
+        spec_file = os.path.join(RESULT_DIR, f"DID_{dataset_did}", "experimentSpecs.txt")
+        with open(spec_file, "w") as res_f:
+            res_f.write(f"Experiment specs: Corruption rate: {CORRUPTION_RATE}; " +
+                        f"Fraction of data labeled: {FRACTION_LABELED}; " +  
+                        f"Number of seeds: {len(SEEDS)}; " + 
+                        f"Contrastive learning epochs: {CONTRASTIVE_LEARNING_MAX_EPOCHS}; " + 
+                        f"Supervised learning epochs: {SUPERVISED_LEARNING_MAX_EPOCHS}.\n" +
+                        f"{dataset_name} ({dataset_did}) with {n_classes} cls, {n_feats_before_processing} feats ({n_cat_feats_before_processing} categorical), " +
+                        f"feature importance range {feat_impt_range:.2f}\n") 
         
-        print(f"{dataset_name} finished!")
+        print(f"<<<<<<<<<<<<<<<{dataset_name} finished!>>>>>>>>>>>>>>")
 
     print("Main function finished!") 
