@@ -161,3 +161,5 @@ cython_debug/
 
 # additional added myself
 .vscode/
+*.npy
+*.pdf

@@ -11,7 +11,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 #from sklearn.manifold import TSNE
-from sklearn.metrics import (ConfusionMatrixDisplay, classification_report, confusion_matrix)
+from sklearn.metrics import (ConfusionMatrixDisplay, classification_report, confusion_matrix, roc_auc_score)
 from sklearn.model_selection import train_test_split
 
 from torch.utils.data import DataLoader
@@ -31,11 +31,11 @@ print("Disabled warnings!")
 print(f"Using DEVICE: {DEVICE}")
 
 
-ALL_DIDS = [11, 14, 15, 16, 18, 22]
-            #23, 29, 31, 37, 50, 54, 
-            #188, 458, 469, 1049, 1050, 1063, 
-            #1068, 1510, 1494, 1480, 1462, 1464, 
-            #6332, 23381, 40966, 40982, 40994, 40975]
+ALL_DIDS = [11, 14, 15, 16, 18, 22,
+            23, 29, 31, 37, 50, 54, 
+            188, 458, 469, 1049, 1050, 1063, 
+            1068, 1510, 1494, 1480, 1462, 1464, 
+            6332, 23381, 40966, 40982, 40994, 40975]
 
 if __name__ == "__main__":   
     # OpenML dataset
@@ -45,9 +45,9 @@ if __name__ == "__main__":
         dataset_name, dataset_did, n_classes, n_cat_feats_before_processing, n_feats_before_processing, data, target = ds
         print(f"Loaded dataset: {dataset_name} ({dataset_did}), with data shape: {data.shape} (including {n_cat_feats_before_processing} categorical features), and target shape: {target.shape}")
         assert len(data.select_dtypes(include='category').columns)==n_cat_feats_before_processing 
-        accuracies = {}
+        accuracies, aurocs = {}, {}
         for key in ALL_METHODS:
-            accuracies[key] = []       
+            accuracies[key], aurocs[key] = [], []       
 
         # run each experiment multiple times with varying seeds
         for seed in SEEDS:
@@ -143,21 +143,24 @@ if __name__ == "__main__":
                     train_losses = train_classification(models[method_key], supervised_sampler, one_hot_encoder)
                     supervised_loss_histories[method_key] = train_losses
 
-            # Evaluation on prediction accuracies
+            # Evaluation on prediction accuracies and aucs
             for method_key in ALL_METHODS:
                 models[method_key].eval()
                 with torch.no_grad():
                     test_prediction_logits = models[method_key].get_classification_prediction_logits( \
                                         torch.tensor(one_hot_encoder.transform(test_data), dtype=torch.float32).to(DEVICE)).cpu().numpy()
+                    auroc = roc_auc_score(y_true=test_targets, y_score=test_prediction_logits, multi_class=)
                     test_predictions = np.argmax(test_prediction_logits,axis=1)
                     accuracy = np.mean(test_predictions==test_targets)*100
                     accuracies[method_key].append(accuracy)
-                    print(f"{method_key} accuracy: {accuracy:.2f}%")
+                    aurocs[method_key].append(auroc)
+                    print(f"{method_key} accuracy: {accuracy:.2f}%; auroc: {auroc:.2f}")
 
         # same all the trial accuracy results to numpy file  
         os.makedirs(os.path.join(RESULT_DIR, f"DID_{dataset_did}"), exist_ok=True) 
         for method_key in ALL_METHODS:
             np.save(os.path.join(RESULT_DIR, f"DID_{dataset_did}", f"{method_key}_accuracies.npy"), accuracies[method_key])  
+            np.save(os.path.join(RESULT_DIR, f"DID_{dataset_did}", f"{method_key}_aurocs.npy"), accuracies[method_key])  
 
         # write the dataset specifications and experiment hyperparameters into a file
         spec_file = os.path.join(RESULT_DIR, f"DID_{dataset_did}", "experimentSpecs.txt")

@@ -20,12 +20,11 @@ CLS_CORR_REFRESH_SAMPLER_PERIOD = 10
 FRACTION_LABELED = 0.3
 CORRUPTION_RATE = 0.4
 BATCH_SIZE = 256
-SEEDS = [614579, 336466, 974761, 450967, 743562, 843198, 502837, 328984, 
-         123791, 328039, 612898, 128901, 132672, 734768, 902189, 237897]
+SEEDS = [614579, 336466, 974761, 450967, 743562, 843198, 502837, 328984]
 assert len(SEEDS) == len(set(SEEDS))
 # All the methods to experiment
 CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr']
-CORRUPT_LOCATIONS = ['rand_feats', 'leastCorr_feats', 'mostCorr_feats']
+CORRUPT_LOCATIONS = ['rand_feats']#, 'leastCorr_feats', 'mostCorr_feats']
 ALL_METHODS = ['no_pretrain'] + [f'{i}-{j}' for i in CORRUPT_METHODS for j in CORRUPT_LOCATIONS]
 
 XGB_FEATURECORR_CONFIG = {
