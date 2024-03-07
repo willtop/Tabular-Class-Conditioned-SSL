@@ -163,3 +163,4 @@ cython_debug/
 .vscode/
 *.npy
 *.pdf
+experiments/*
