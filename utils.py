@@ -26,6 +26,11 @@ assert len(SEEDS) == len(set(SEEDS))
 CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr']
 CORRUPT_LOCATIONS = ['rand_feats']#, 'leastCorr_feats', 'mostCorr_feats']
 ALL_METHODS = ['no_pretrain'] + [f'{i}-{j}' for i in CORRUPT_METHODS for j in CORRUPT_LOCATIONS]
+P_VAL_SIGNIFICANCE = 0.05
+
+# Result processing metric
+METRIC = "accuracy"
+# METRIC = "auroc"
 
 XGB_FEATURECORR_CONFIG = {
     "n_estimators": 100, 

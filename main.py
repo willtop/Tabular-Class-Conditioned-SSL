@@ -30,7 +30,6 @@ print("Disabled warnings!")
 
 print(f"Using DEVICE: {DEVICE}")
 
-
 ALL_DIDS = [11, 14, 15, 16, 18, 22,
             23, 29, 31, 37, 50, 54, 
             188, 458, 469, 1049, 1050, 1063, 
@@ -147,10 +146,13 @@ if __name__ == "__main__":
             for method_key in ALL_METHODS:
                 models[method_key].eval()
                 with torch.no_grad():
-                    test_prediction_logits = models[method_key].get_classification_prediction_logits( \
-                                        torch.tensor(one_hot_encoder.transform(test_data), dtype=torch.float32).to(DEVICE)).cpu().numpy()
-                    auroc = roc_auc_score(y_true=test_targets, y_score=test_prediction_logits, multi_class=)
-                    test_predictions = np.argmax(test_prediction_logits,axis=1)
+                    test_prediction_logits_normalized = models[method_key].get_classification_prediction_logits( \
+                                        torch.tensor(one_hot_encoder.transform(test_data), dtype=torch.float32).to(DEVICE)).softmax(dim=1).cpu().numpy()
+                    if n_classes == 2:
+                        auroc = roc_auc_score(y_true=test_targets, y_score=test_prediction_logits_normalized[:,1])
+                    else:
+                        auroc = roc_auc_score(y_true=test_targets, y_score=test_prediction_logits_normalized, multi_class='ovr')
+                    test_predictions = np.argmax(test_prediction_logits_normalized,axis=1)
                     accuracy = np.mean(test_predictions==test_targets)*100
                     accuracies[method_key].append(accuracy)
                     aurocs[method_key].append(auroc)
@@ -160,7 +162,7 @@ if __name__ == "__main__":
         os.makedirs(os.path.join(RESULT_DIR, f"DID_{dataset_did}"), exist_ok=True) 
         for method_key in ALL_METHODS:
             np.save(os.path.join(RESULT_DIR, f"DID_{dataset_did}", f"{method_key}_accuracies.npy"), accuracies[method_key])  
-            np.save(os.path.join(RESULT_DIR, f"DID_{dataset_did}", f"{method_key}_aurocs.npy"), accuracies[method_key])  
+            np.save(os.path.join(RESULT_DIR, f"DID_{dataset_did}", f"{method_key}_aurocs.npy"), aurocs[method_key])  
 
         # write the dataset specifications and experiment hyperparameters into a file
         spec_file = os.path.join(RESULT_DIR, f"DID_{dataset_did}", "experimentSpecs.txt")
