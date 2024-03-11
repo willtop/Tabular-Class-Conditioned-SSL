@@ -167,6 +167,7 @@ if __name__ == "__main__":
         # write the dataset specifications and experiment hyperparameters into a file
         spec_file = os.path.join(RESULT_DIR, f"DID_{dataset_did}", "experimentSpecs.txt")
         with open(spec_file, "w") as res_f:
+            print(f"Writing experimental specs into the file {spec_file}...")
             res_f.write(f"Experiment specs: Corruption rate: {CORRUPTION_RATE}; " +
                         f"Fraction of data labeled: {FRACTION_LABELED}; " +  
                         f"Number of seeds: {len(SEEDS)}; " + 

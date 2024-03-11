@@ -11,7 +11,6 @@ ALL_DIDS = [11, 14, 15, 16, 18, 22,
             6332, 23381, 40966, 40982, 40994, 40975]
 
 
-
 if __name__ == "__main__":
     win_mat = np.zeros(shape=[len(ALL_METHODS), len(ALL_METHODS)])
     datasets_list = openml.datasets.list_datasets(ALL_DIDS, output_format='dataframe')
@@ -34,7 +33,7 @@ if __name__ == "__main__":
             spec_file = os.path.join(RESULT_DIR, f"DID_{did}", "experimentSpecs.txt")
             with open(spec_file, "w") as res_f: 
                 spec_lines = res_f.readlines()
-                val_token = spec_lines[1].split(' ')[3]
+                val_token = spec_lines[2].split(' ')[-1]
                 assert val_token.isnumeric()
                 feature_correlation_value_range = float(val_token)
         else:
