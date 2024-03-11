@@ -23,10 +23,11 @@ BATCH_SIZE = 256
 SEEDS = [614579, 336466, 974761, 450967, 743562, 843198, 502837, 328984]
 assert len(SEEDS) == len(set(SEEDS))
 # All the methods to experiment
-CORRUPT_METHODS = ['rand_corr', 'cls_corr', 'orc_corr']
-CORRUPT_LOCATIONS = ['rand_feats']#, 'leastCorr_feats', 'mostCorr_feats']
-ALL_METHODS = ['no_pretrain'] + [f'{i}-{j}' for i in CORRUPT_METHODS for j in CORRUPT_LOCATIONS]
+CORRUPT_METHODS = ['rand_corr']#, 'cls_corr', 'orc_corr']
+CORRUPT_LOCATIONS = ['leastCorr_feats', 'mostCorr_feats'] #['rand_feats']
+ALL_METHODS = ['no_pretrain'] + [f'{i}-{j}' for i in CORRUPT_METHODS for j in CORRUPT_LOCATIONS]  
 P_VAL_SIGNIFICANCE = 0.05
+CORRELATED_FEATURES_RANDOMIZE_SAMPLING = False
 
 # Result processing metric
 METRIC = "accuracy"

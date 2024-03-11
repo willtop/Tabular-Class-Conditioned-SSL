@@ -172,6 +172,7 @@ if __name__ == "__main__":
                         f"Number of seeds: {len(SEEDS)}; " + 
                         f"Contrastive learning epochs: {CONTRASTIVE_LEARNING_MAX_EPOCHS}; " + 
                         f"Supervised learning epochs: {SUPERVISED_LEARNING_MAX_EPOCHS}.\n" +
+                        f"Whether randomized sampling: {CORRELATED_FEATURES_RANDOMIZE_SAMPLING} (only applicable for correlated features sampling).\n" + 
                         f"{dataset_name} ({dataset_did}) with {n_classes} cls, {n_feats_before_processing} feats ({n_cat_feats_before_processing} categorical), " +
                         f"feature importance range {feat_impt_range:.2f}\n") 
         
