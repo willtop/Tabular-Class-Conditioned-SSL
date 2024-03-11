@@ -85,8 +85,8 @@ if __name__ == "__main__":
 
             # prepare models
             models, contrastive_loss_histories, supervised_loss_histories = {}, {}, {}
-            for method_key in ALL_METHODS:
-                models[method_key] = Neural_Net(
+            for method in ALL_METHODS:
+                models[method] = Neural_Net(
                     input_dim=one_hot_encoder.transform(train_data).shape[1],  # model expect one-hot encoded input
                     emb_dim=256,
                     output_dim=n_classes   
@@ -114,39 +114,38 @@ if __name__ == "__main__":
             # prepare mask generator
             mask_generators = {}
             mask_generators['rand_feats'] = RandomMaskGenerator(train_data.shape[1])
-            mask_generators['leastCorr_feats'] = CorrelationMaskGenerator(train_data.shape[1], high_correlation=False)
-            mask_generators['mostCorr_feats'] = CorrelationMaskGenerator(train_data.shape[1], high_correlation=True)
-            mask_generators['leastCorr_feats'].initialize_feature_importances(feat_impt)
-            mask_generators['mostCorr_feats'].initialize_feature_importances(feat_impt)
+            mask_generators['leastRela_feats'] = CorrelationMaskGenerator(train_data.shape[1], high_correlation=False)
+            mask_generators['mostRela_feats'] = CorrelationMaskGenerator(train_data.shape[1], high_correlation=True)
+            mask_generators['leastRela_feats'].initialize_feature_importances(feat_impt)
+            mask_generators['mostRela_feats'].initialize_feature_importances(feat_impt)
 
 
-            ################ Contrastive training #############
-            for corrupt_method in CORRUPT_METHODS:
-                for corrupt_loc in CORRUPT_LOCATIONS:
-                    method_key = f"{corrupt_method}-{corrupt_loc}"
-                    train_losses = train_contrastive_loss(models[method_key], 
-                                                          method_key,
-                                                          contrastive_samplers[corrupt_method],
-                                                          supervised_sampler,
-                                                          mask_generators[corrupt_loc],
-                                                          mask_train_labeled,
-                                                          one_hot_encoder)
-                    contrastive_loss_histories[method_key] = train_losses
+            for method in ALL_METHODS:
+                if method == "no_pretrain":
+                    continue
+                assert '-' in method
+                corrupt_method, corrupt_loc = method.split('-')
+                # Contrastive training
+                train_losses = train_contrastive_loss(models[method], 
+                                                      method,
+                                                      contrastive_samplers[corrupt_method],
+                                                      supervised_sampler,
+                                                      mask_generators[corrupt_loc],
+                                                      mask_train_labeled,
+                                                      one_hot_encoder)
+                contrastive_loss_histories[method] = train_losses
 
-            # fine tune the pre-trained models on the down-stream supervised learning task
-            for corrupt_method in CORRUPT_METHODS:
-                for corrupt_loc in CORRUPT_LOCATIONS:
-                    method_key = f"{corrupt_method}-{corrupt_loc}"
-                    models[method_key].freeze_encoder()
-                    print(f"Supervised fine-tuning for {method_key}...")
-                    train_losses = train_classification(models[method_key], supervised_sampler, one_hot_encoder)
-                    supervised_loss_histories[method_key] = train_losses
+                # fine tune the pre-trained models on the down-stream supervised learning task
+                models[method].freeze_encoder()
+                print(f"Supervised fine-tuning for {method}...")
+                train_losses = train_classification(models[method], supervised_sampler, one_hot_encoder)
+                supervised_loss_histories[method] = train_losses
 
             # Evaluation on prediction accuracies and aucs
-            for method_key in ALL_METHODS:
-                models[method_key].eval()
+            for method in ALL_METHODS:
+                models[method].eval()
                 with torch.no_grad():
-                    test_prediction_logits_normalized = models[method_key].get_classification_prediction_logits( \
+                    test_prediction_logits_normalized = models[method].get_classification_prediction_logits( \
                                         torch.tensor(one_hot_encoder.transform(test_data), dtype=torch.float32).to(DEVICE)).softmax(dim=1).cpu().numpy()
                     if n_classes == 2:
                         auroc = roc_auc_score(y_true=test_targets, y_score=test_prediction_logits_normalized[:,1])
@@ -154,15 +153,15 @@ if __name__ == "__main__":
                         auroc = roc_auc_score(y_true=test_targets, y_score=test_prediction_logits_normalized, multi_class='ovr')
                     test_predictions = np.argmax(test_prediction_logits_normalized,axis=1)
                     accuracy = np.mean(test_predictions==test_targets)*100
-                    accuracies[method_key].append(accuracy)
-                    aurocs[method_key].append(auroc)
-                    print(f"{method_key} accuracy: {accuracy:.2f}%; auroc: {auroc:.2f}")
+                    accuracies[method].append(accuracy)
+                    aurocs[method].append(auroc)
+                    print(f"{method} accuracy: {accuracy:.2f}%; auroc: {auroc:.2f}")
 
         # same all the trial accuracy results to numpy file  
         os.makedirs(os.path.join(RESULT_DIR, f"DID_{dataset_did}"), exist_ok=True) 
-        for method_key in ALL_METHODS:
-            np.save(os.path.join(RESULT_DIR, f"DID_{dataset_did}", f"{method_key}_accuracies.npy"), accuracies[method_key])  
-            np.save(os.path.join(RESULT_DIR, f"DID_{dataset_did}", f"{method_key}_aurocs.npy"), aurocs[method_key])  
+        for method in ALL_METHODS:
+            np.save(os.path.join(RESULT_DIR, f"DID_{dataset_did}", f"{method}_accuracies.npy"), accuracies[method])  
+            np.save(os.path.join(RESULT_DIR, f"DID_{dataset_did}", f"{method}_aurocs.npy"), aurocs[method])  
 
         # write the dataset specifications and experiment hyperparameters into a file
         spec_file = os.path.join(RESULT_DIR, f"DID_{dataset_did}", "experimentSpecs.txt")
