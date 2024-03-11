@@ -13,9 +13,6 @@ ALL_DIDS = [11, 14, 15, 16, 18, 22,
 
 
 if __name__ == "__main__":
-    latex_table = "\hline \n Datasets (DID) & {} No-PreTrain & Random & Class & Oracle \\\\ \n\hline \n".format(
-                    "Corrupted Features &" if 'cls_corr-leastCorr_feats' in ALL_METHODS else ""
-    )
     win_mat = np.zeros(shape=[len(ALL_METHODS), len(ALL_METHODS)])
     datasets_list = openml.datasets.list_datasets(ALL_DIDS, output_format='dataframe')
     for did in ALL_DIDS:
@@ -31,6 +28,17 @@ if __name__ == "__main__":
             assert len(res_vals[method]) == len(SEEDS)
             res_avg[method] = np.mean(res_vals[method])
             res_std[method] = np.std(res_vals[method]) / np.sqrt(len(SEEDS))
+
+        if 'cls_corr-leastCorr_feats' in ALL_METHODS:
+            # Read in feature correlation value range
+            spec_file = os.path.join(RESULT_DIR, f"DID_{did}", "experimentSpecs.txt")
+            with open(spec_file, "w") as res_f: 
+                spec_lines = res_f.readlines()
+                val_token = spec_lines[1].split(' ')[3]
+                assert val_token.isnumeric()
+                feature_correlation_value_range = float(val_token)
+        else:
+            feature_correlation_value_range = None
 
         # Update the win matrix
         for i in range(len(ALL_METHODS)):
@@ -61,7 +69,8 @@ if __name__ == "__main__":
         ds_name = datasets_list[datasets_list.did==did].name.item()
         ds_name = ds_name.replace("_", "-")
         if 'cls_corr-leastCorr_feats' not in ALL_METHODS:
-            # Table only including comparison between methods on how to corruption 
+            # Table including comparison between methods on how to corrupt 
+            latex_table = "\hline \n Datasets (DID) & No-PreTrain & Random & Class & Oracle \\\\ \n\hline \n"
             latex_table += f"{ds_name} ({did}) & " 
             # add in no pretrain results
             latex_table += f"${res_avg['no_pretrain']:.2f}\pm {res_std['no_pretrain']:.2f}$ & "
@@ -72,22 +81,13 @@ if __name__ == "__main__":
             # add in results under oracle corruption
             latex_table += f"${res_avg['orc_corr-rand_feats']:.2f}\pm {res_std['orc_corr-rand_feats']:.2f}$ \\\\ \n"
         else:
-            # Full table also including comparison to methods with feature correlations
-            latex_table += f"\multirow{{3}}{{*}}{{ {ds_name} ({did}) }} & Random & " 
-            # add in no pretrain results
-            latex_table += f"\multirow{{3}}{{*}}{{ ${res_avg['no_pretrain']:.2f}\pm {res_std['no_pretrain']:.2f}$ }} & "
-            # add in results under random features corruption
-            latex_table += f"${res_avg['rand_corr-rand_feats']:.2f}\pm {res_std['rand_corr-rand_feats']:.2f}$ & "
+            # Table including comparison between methods on where to corrupt
+            latex_table = "\hline \n Datasets (DID) & Feature Correlation Value Range & Random Features & Least Correlated & Most Correlated \\\\ \n\hline \n"
+            latex_table += f"{ds_name} ({did}) & {feature_correlation_value_range} & " 
+            # add in results under class-conditioned corruption
             latex_table += f"${res_avg['cls_corr-rand_feats']:.2f}\pm {res_std['cls_corr-rand_feats']:.2f}$ & "
-            latex_table += f"${res_avg['orc_corr-rand_feats']:.2f}\pm {res_std['orc_corr-rand_feats']:.2f}$ \\\\ \n"
-            # add in results under least-correlated features corruption
-            latex_table += f"&Least-Corr & & ${res_avg['rand_corr-leastCorr_feats']:.2f}\pm {res_std['rand_corr-leastCorr_feats']:.2f}$ & "
             latex_table += f"${res_avg['cls_corr-leastCorr_feats']:.2f}\pm {res_std['cls_corr-leastCorr_feats']:.2f}$ & "
-            latex_table += f"${res_avg['orc_corr-leastCorr_feats']:.2f}\pm {res_std['orc_corr-leastCorr_feats']:.2f}$ \\\\ \n"
-            # add in results under most-correlated features corruption
-            latex_table += f"&Most-Corr & & ${res_avg['rand_corr-mostCorr_feats']:.2f}\pm {res_std['rand_corr-mostCorr_feats']:.2f}$ & "
-            latex_table += f"${res_avg['cls_corr-mostCorr_feats']:.2f}\pm {res_std['cls_corr-mostCorr_feats']:.2f}$ & "
-            latex_table += f"${res_avg['orc_corr-mostCorr_feats']:.2f}\pm {res_std['orc_corr-mostCorr_feats']:.2f}$ \\\\ \n"
+            latex_table += f"${res_avg['cls_corr-mostCorr_feats']:.2f}\pm {res_std['cls_corr-mostCorr_feats']:.2f}$ \\\\ \n"
       
 
     # process win matrices
