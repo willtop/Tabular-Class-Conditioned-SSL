@@ -1,0 +1,2 @@
+Experiment specs: Corruption rate: 0.4; Fraction of data labeled: 0.3; Number of seeds: 8; Contrastive learning epochs: 500; Supervised learning epochs: 100.
+cmc (23) with 3 cls, 9 feats (7 categorical), feature importance range 0.12

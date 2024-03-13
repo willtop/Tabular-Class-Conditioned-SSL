@@ -4,19 +4,26 @@ from scipy.stats import ttest_ind
 from utils import *
 from tqdm import tqdm
 
-ALL_DIDS = [11, 14, 15, 16, 18, 22,
-            23, 29, 31, 37, 50, 54, 
+ALL_DIDS = [14, 15, 16, 
             188, 458, 469, 1049, 1050, 1063, 
-            1068, 1510, 1494, 1480, 1462, 1464, 
-            6332, 23381, 40966, 40982, 40994, 40975]
+            1068, 1494, 1480, 1462, 1464, 1510, 
+            6332]
 
-METHODS_TO_COMPARE = ['no_pretrain', 'rand_corr-rand_feats', 'cls_corr-rand_feats', 'orc_corr-rand_feats']
+# METHODS_TO_COMPARE = ['no_pretrain', 'rand_corr-rand_feats', 'cls_corr-rand_feats', 'orc_corr-rand_feats']
 METHODS_TO_COMPARE = ['cls_corr-rand_feats', 'cls_corr-leastRela_feats', 'cls_corr-mostRela_feats']
 
+print(f"Process results for {METHODS_TO_COMPARE} on the metric {METRIC}")
 
 if __name__ == "__main__":
     win_mat = np.zeros(shape=[len(METHODS_TO_COMPARE), len(METHODS_TO_COMPARE)])
     datasets_list = openml.datasets.list_datasets(ALL_DIDS, output_format='dataframe')
+    if 'cls_corr-leastRela_feats' not in METHODS_TO_COMPARE:
+        # Table including comparison between methods on how to corrupt 
+        latex_table = "\hline \n Datasets (DID) & No-PreTrain & Random & Class & Oracle \\\\ \n\hline \n"
+    else:
+        # Table including comparison between methods on where to corrupt
+        latex_table = "\hline \n Datasets (DID) & Feature Correlation Value Range & Random Features & Least Correlated & Most Correlated \\\\ \n\hline \n"
+
     for did in ALL_DIDS:
         if not os.path.isdir(os.path.join(RESULT_DIR, f"DID_{did}")):
             print(f"Dataset {did} results not available! Skipped.")
@@ -34,11 +41,13 @@ if __name__ == "__main__":
         if 'cls_corr-leastRela_feats' in METHODS_TO_COMPARE:
             # Read in feature correlation value range
             spec_file = os.path.join(RESULT_DIR, f"DID_{did}", "experimentSpecs.txt")
-            with open(spec_file, "w") as res_f: 
+            with open(spec_file, "r") as res_f: 
                 spec_lines = res_f.readlines()
-                val_token = spec_lines[2].split(' ')[-1]
-                assert val_token.isnumeric()
-                feature_correlation_value_range = float(val_token)
+                val_token = spec_lines[2].split(' ')[-1].rstrip()
+                try:
+                    feature_correlation_value_range = float(val_token)
+                except ValueError:
+                    print(f"Invalid string for correlation value range: {val_token}")
         else:
             feature_correlation_value_range = None
 
@@ -46,7 +55,6 @@ if __name__ == "__main__":
         for i in range(len(METHODS_TO_COMPARE)):
             for j in range(i+1, len(METHODS_TO_COMPARE)):
                 method_1, method_2 = METHODS_TO_COMPARE[i], METHODS_TO_COMPARE[j]
-                # Accuracies
                 # conduct Welch's t-test with unequal variances
                 if res_avg[method_1] < res_avg[method_2]:
                     # Null hypothesis to be rejected: method_1 has higher mean
@@ -71,20 +79,13 @@ if __name__ == "__main__":
         ds_name = datasets_list[datasets_list.did==did].name.item()
         ds_name = ds_name.replace("_", "-")
         if 'cls_corr-leastRela_feats' not in METHODS_TO_COMPARE:
-            # Table including comparison between methods on how to corrupt 
-            latex_table = "\hline \n Datasets (DID) & No-PreTrain & Random & Class & Oracle \\\\ \n\hline \n"
             latex_table += f"{ds_name} ({did}) & " 
-            # add in no pretrain results
+            # add in results under random features selected for corruption
             latex_table += f"${res_avg['no_pretrain']:.2f}\pm {res_std['no_pretrain']:.2f}$ & "
-            # add in results under random corruption
             latex_table += f"${res_avg['rand_corr-rand_feats']:.2f}\pm {res_std['rand_corr-rand_feats']:.2f}$ & "
-            # add in results under class-conditioned corruption
             latex_table += f"${res_avg['cls_corr-rand_feats']:.2f}\pm {res_std['cls_corr-rand_feats']:.2f}$ & "
-            # add in results under oracle corruption
             latex_table += f"${res_avg['orc_corr-rand_feats']:.2f}\pm {res_std['orc_corr-rand_feats']:.2f}$ \\\\ \n"
         else:
-            # Table including comparison between methods on where to corrupt
-            latex_table = "\hline \n Datasets (DID) & Feature Correlation Value Range & Random Features & Least Correlated & Most Correlated \\\\ \n\hline \n"
             latex_table += f"{ds_name} ({did}) & {feature_correlation_value_range} & " 
             # add in results under class-conditioned corruption
             latex_table += f"${res_avg['cls_corr-rand_feats']:.2f}\pm {res_std['cls_corr-rand_feats']:.2f}$ & "
@@ -128,7 +129,7 @@ if __name__ == "__main__":
     # finishing the table by an underline
     latex_table += "\hline \n"  
     latex_table_filename = os.path.join(RESULT_DIR, 
-                                        f"{METRIC}_table{'_full' if 'cls_corr-leastRela_feats' in METHODS_TO_COMPARE else ''}.tex")
+                                        f"{METRIC}_table_{'where_corrupt' if 'cls_corr-leastRela_feats' in METHODS_TO_COMPARE else 'how_corrupt'}.tex")
 
     with open(latex_table_filename, "w") as f:
         f.write(latex_table)

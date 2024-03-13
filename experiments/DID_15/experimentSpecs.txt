@@ -1,0 +1,3 @@
+Experiment specs: Corruption rate: 0.4; Fraction of data labeled: 0.3; Number of seeds: 8; Contrastive learning epochs: 500; Supervised learning epochs: 100.
+Whether randomized sampling: False (only applicable for correlated features sampling).
+breast-w (15) with 2 cls, 9 feats (0 categorical), feature importance range 0.35
