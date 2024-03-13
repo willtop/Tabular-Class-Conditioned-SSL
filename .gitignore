@@ -162,5 +162,7 @@ cython_debug/
 # additional added myself
 .vscode/
 *.npy
+# add experimental results
+!experiments/**/*.npy
 *.pdf
-experiments/*
+
