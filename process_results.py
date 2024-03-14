@@ -4,10 +4,11 @@ from scipy.stats import ttest_ind
 from utils import *
 from tqdm import tqdm
 
-ALL_DIDS = [14, 15, 16, 
+ALL_DIDS = [11, 14, 15, 16, 18, 22, 
+            23, 29, 31, 37, 50, 54, 
             188, 458, 469, 1049, 1050, 1063, 
-            1068, 1494, 1480, 1462, 1464, 1510, 
-            6332]
+            1068, 1462, 1464, 1480, 1494, 1510,    
+            6332, 23381, 40966, 40975, 40982, 40994]
 
 # METHODS_TO_COMPARE = ['no_pretrain', 'rand_corr-rand_feats', 'cls_corr-rand_feats', 'orc_corr-rand_feats']
 METHODS_TO_COMPARE = ['cls_corr-rand_feats', 'cls_corr-leastRela_feats', 'cls_corr-mostRela_feats']
@@ -22,7 +23,7 @@ if __name__ == "__main__":
         latex_table = "\hline \n Datasets (DID) & No-PreTrain & Random & Class & Oracle \\\\ \n\hline \n"
     else:
         # Table including comparison between methods on where to corrupt
-        latex_table = "\hline \n Datasets (DID) & Feature Correlation Value Range & Random Features & Least Correlated & Most Correlated \\\\ \n\hline \n"
+        latex_table = "\hline \n Datasets (DID) & \makecell{Feature Correlation \\\\ Value Range} & Random Features & Least Correlated & Most Correlated \\\\ \n\hline \n"
 
     for did in ALL_DIDS:
         if not os.path.isdir(os.path.join(RESULT_DIR, f"DID_{did}")):

@@ -25,7 +25,8 @@ assert len(SEEDS) == len(set(SEEDS))
 # All the methods to experiment
 ALL_METHODS = ['no_pretrain', 'rand_corr-rand_feats', 'cls_corr-rand_feats', 'orc_corr-rand_feats', 'cls_corr-leastRela_feats', 'cls_corr-mostRela_feats']  
 P_VAL_SIGNIFICANCE = 0.05
-CORRELATED_FEATURES_RANDOMIZE_SAMPLING = False
+CORRELATED_FEATURES_RANDOMIZE_SAMPLING = True
+CORRELATED_FEATURES_RANDOMIZE_SAMPLING_TEMPERATURE = 0.2
 
 # Result processing metric
 METRIC = "accuracy"

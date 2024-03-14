@@ -51,7 +51,11 @@ class CorrelationMaskGenerator(RandomMaskGenerator):
                     selected_id  = np.random.choice(remaining_idxes)
                 else:
                     if CORRELATED_FEATURES_RANDOMIZE_SAMPLING:
-                        selected_id = np.random.choice(remaining_idxes, p=sampling_prob_onerow/np.sum(sampling_prob_onerow))
+                        sampling_p = sampling_prob_onerow/np.sum(sampling_prob_onerow)
+                        # use softmax with very low temperature to make the distribution more peaky
+                        sampling_p = \
+                            np.exp(sampling_p/CORRELATED_FEATURES_RANDOMIZE_SAMPLING_TEMPERATURE)/np.sum(np.exp(sampling_p/CORRELATED_FEATURES_RANDOMIZE_SAMPLING_TEMPERATURE))
+                        selected_id = np.random.choice(remaining_idxes, p=sampling_p)
                     else:
                         # deterministically select the largest one
                         selected_id = remaining_idxes[np.argmax(sampling_prob_onerow)]

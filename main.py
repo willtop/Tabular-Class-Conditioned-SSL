@@ -30,9 +30,11 @@ print("Disabled warnings!")
 
 print(f"Using DEVICE: {DEVICE}")
 
-ALL_DIDS =  [11, 18, 22,
+ALL_DIDS = [11, 14, 15, 16, 18, 22, 
             23, 29, 31, 37, 50, 54, 
-            23381, 40966, 40982, 40994, 40975]
+            188, 458, 469, 1049, 1050, 1063, 
+            1068, 1462, 1464, 1480, 1494, 1510,    
+            6332, 23381, 40966, 40975, 40982, 40994]
 
 
 if __name__ == "__main__":   
@@ -171,7 +173,8 @@ if __name__ == "__main__":
                         f"Number of seeds: {len(SEEDS)}; " + 
                         f"Contrastive learning epochs: {CONTRASTIVE_LEARNING_MAX_EPOCHS}; " + 
                         f"Supervised learning epochs: {SUPERVISED_LEARNING_MAX_EPOCHS}.\n" +
-                        f"Whether randomized sampling: {CORRELATED_FEATURES_RANDOMIZE_SAMPLING} (only applicable for correlated features sampling).\n" + 
+                        f"Whether randomized sampling for correlated features sampling: {CORRELATED_FEATURES_RANDOMIZE_SAMPLING}. " + 
+                        f"Correlated features sampling softmax temperature: {CORRELATED_FEATURES_RANDOMIZE_SAMPLING_TEMPERATURE}.\n" + 
                         f"{dataset_name} ({dataset_did}) with {n_classes} cls, {n_feats_before_processing} feats ({n_cat_feats_before_processing} categorical), " +
                         f"feature importance range {feat_impt_range:.2f}\n") 
         

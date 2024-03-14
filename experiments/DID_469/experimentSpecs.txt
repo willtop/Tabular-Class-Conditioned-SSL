@@ -1,3 +1,0 @@
-Experiment specs: Corruption rate: 0.4; Fraction of data labeled: 0.3; Number of seeds: 8; Contrastive learning epochs: 500; Supervised learning epochs: 100.
-Whether randomized sampling: False (only applicable for correlated features sampling).
-analcatdata_dmft (469) with 6 cls, 4 feats (4 categorical), feature importance range 0.19
