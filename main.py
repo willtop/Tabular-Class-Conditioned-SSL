@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
             # Firstly, train the supervised learning model on the labeled subset
             # freeze the supervised learning encoder as initialized
-            models['no_pretrain'].freeze_encoder()  
+            models['no_pretrain'].module.freeze_encoder()  
             print("Supervised training for no_pretrain...")
             train_losses = train_classification(models['no_pretrain'], supervised_sampler, one_hot_encoder)
             supervised_loss_histories['no_pretrain'] = train_losses
@@ -138,16 +138,16 @@ if __name__ == "__main__":
                 contrastive_loss_histories[method] = train_losses
 
                 # fine tune the pre-trained models on the down-stream supervised learning task
-                models[method].freeze_encoder()
+                models[method].module.freeze_encoder()
                 print(f"Supervised fine-tuning for {method}...")
                 train_losses = train_classification(models[method], supervised_sampler, one_hot_encoder)
                 supervised_loss_histories[method] = train_losses
 
             # Evaluation on prediction accuracies and aucs
             for method in ALL_METHODS:
-                models[method].eval()
+                models[method].module.eval()
                 with torch.no_grad():
-                    test_prediction_logits_normalized = models[method].get_classification_prediction_logits( \
+                    test_prediction_logits_normalized = models[method].module.get_classification_prediction_logits( \
                                         torch.tensor(one_hot_encoder.transform(test_data), dtype=torch.float32).to(DEVICE)).softmax(dim=1).cpu().numpy()
                     if n_classes == 2:
                         auroc = roc_auc_score(y_true=test_targets, y_score=test_prediction_logits_normalized[:,1])

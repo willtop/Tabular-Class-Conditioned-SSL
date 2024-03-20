@@ -30,11 +30,11 @@ def _train_contrastive_loss_oneEpoch(model,
         optimizer.zero_grad()
 
         # get embeddings
-        emb_final_anchors = model.get_final_embedding(anchors)
-        emb_final_corrupted = model.get_final_embedding(anchors_corrupted)
+        emb_final_anchors = model.module.get_final_embedding(anchors)
+        emb_final_corrupted = model.module.get_final_embedding(anchors_corrupted)
 
         # compute loss
-        loss = model.contrastive_loss(emb_final_anchors, emb_final_corrupted)
+        loss = model.module.contrastive_loss(emb_final_anchors, emb_final_corrupted)
         loss.backward()
 
         # update model weights
@@ -59,7 +59,7 @@ def train_contrastive_loss(model,
     
     for i in tqdm(range(1, CONTRASTIVE_LEARNING_MAX_EPOCHS+1)):
         if i%CLS_CORR_REFRESH_SAMPLER_PERIOD == 0 and 'cls_corr' in method_key:
-            model.freeze_encoder()
+            model.module.freeze_encoder()
             # train the current model on down-stream supervised task
             _ = train_classification(model, supervised_sampler, one_hot_encoder)
             # use the current model to do pseudo labeling
@@ -72,7 +72,7 @@ def train_contrastive_loss(model,
             # get the class based sampler based on more reliable model predictions
             contrastive_sampler = ClassCorruptSampler(pd.DataFrame(data=contrastive_sampler.data, columns=contrastive_sampler.columns), 
                                                       bootstrapped_train_targets) 
-            model.unfreeze_encoder()
+            model.module.unfreeze_encoder()
         
         epoch_loss = _train_contrastive_loss_oneEpoch(model, 
                                                       contrastive_sampler, 
@@ -86,10 +86,10 @@ def train_contrastive_loss(model,
 def train_classification(model, supervised_sampler, one_hot_encoder):
     train_losses = []
     optimizer = initialize_adam_optimizer(model)
-    model.initialize_classification_head()
+    model.module.initialize_classification_head()
 
     for _ in range(SUPERVISED_LEARNING_MAX_EPOCHS):
-        model.train()
+        model.module.train()
         epoch_loss = 0.0
         for _ in range(supervised_sampler.n_batches):
             inputs, targets = supervised_sampler.sample_batch()
@@ -103,10 +103,10 @@ def train_classification(model, supervised_sampler, one_hot_encoder):
             optimizer.zero_grad()
 
             # get classification predictions
-            pred_logits = model.get_classification_prediction_logits(inputs)
+            pred_logits = model.module.get_classification_prediction_logits(inputs)
 
             # compute loss
-            loss = model.classification_loss(pred_logits, targets)
+            loss = model.module.classification_loss(pred_logits, targets)
             loss.backward()
 
             # update model weights

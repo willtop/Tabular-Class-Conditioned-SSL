@@ -136,9 +136,9 @@ def fit_one_hot_encoder(one_hot_encoder_raw, train_data):
 
 def get_bootstrapped_targets(data, targets, classifier_model, mask_labeled, one_hot_encoder):
     # use the classifier to predict for all data first
-    classifier_model.eval()
+    classifier_model.module.eval()
     with torch.no_grad():
-        pred_logits = classifier_model.get_classification_prediction_logits(
+        pred_logits = classifier_model.module.get_classification_prediction_logits(
                             torch.tensor(one_hot_encoder.transform(data).astype(float), dtype=torch.float32).to(DEVICE)).cpu().numpy()
     preds = np.argmax(pred_logits, axis=1)
     return np.where(mask_labeled, targets, preds)
@@ -168,4 +168,4 @@ def compute_feature_mutual_influences(data):
     return feat_impt, feat_impt_range_avg
 
 def initialize_adam_optimizer(model):
-    return Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
+    return Adam(filter(lambda p: p.requires_grad, model.module.parameters()), lr=0.001)
