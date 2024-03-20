@@ -14,6 +14,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import (ConfusionMatrixDisplay, classification_report, confusion_matrix, roc_auc_score)
 from sklearn.model_selection import train_test_split
 
+import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from tqdm.autonotebook import tqdm
@@ -87,11 +88,11 @@ if __name__ == "__main__":
             # prepare models
             models, contrastive_loss_histories, supervised_loss_histories = {}, {}, {}
             for method in ALL_METHODS:
-                models[method] = Neural_Net(
+                models[method] = nn.DataParallel(Neural_Net(
                     input_dim=one_hot_encoder.transform(train_data).shape[1],  # model expect one-hot encoded input
                     emb_dim=256,
                     output_dim=n_classes   
-                ).to(DEVICE)
+                )).to(DEVICE)
 
             # Firstly, train the supervised learning model on the labeled subset
             # freeze the supervised learning encoder as initialized

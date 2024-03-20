@@ -12,6 +12,8 @@ from torch.optim import Adam
 
 # Global parameters
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if torch.cuda.device_count() > 1:
+    print("Let's use", torch.cuda.device_count(), "GPUs!!!")
 RESULT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'experiments')
 os.makedirs(RESULT_DIR, exist_ok=True)
 CONTRASTIVE_LEARNING_MAX_EPOCHS = 500
