@@ -10,8 +10,8 @@ ALL_DIDS = [11, 14, 15, 16, 18, 22,
             1068, 1462, 1464, 1480, 1494, 1510,    
             6332, 23381, 40966, 40975, 40982, 40994]
 
-# METHODS_TO_COMPARE = ['no_pretrain', 'rand_corr-rand_feats', 'cls_corr-rand_feats', 'orc_corr-rand_feats']
-METHODS_TO_COMPARE = ['cls_corr-rand_feats', 'cls_corr-leastRela_feats', 'cls_corr-mostRela_feats']
+METHODS_TO_COMPARE = ['no_pretrain', 'rand_corr-rand_feats', 'cls_corr-rand_feats', 'orc_corr-rand_feats']
+# METHODS_TO_COMPARE = ['cls_corr-rand_feats', 'cls_corr-leastRela_feats', 'cls_corr-mostRela_feats']
 
 print(f"Process results for {METHODS_TO_COMPARE} on the metric {METRIC}")
 
@@ -112,6 +112,7 @@ if __name__ == "__main__":
         assert len(METHODS_TO_COMPARE) == 3
         ax.set_xticklabels(['Conventional', 'Least Correlated Features', 'Most Correlated Features'])
         ax.set_yticklabels(['Conventional', 'Least Correlated Features', 'Most Correlated Features'])
+    ax.tick_params(axis='both', which='major', labelsize=15)
 
     # Rotate the tick labels and set their alignment.
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
@@ -121,7 +122,7 @@ if __name__ == "__main__":
     for i in range(len(METHODS_TO_COMPARE)):
         for j in range(len(METHODS_TO_COMPARE)):
             text = ax.text(j, i, f"{win_mat[i, j]*100:.1f}%",
-                        ha="center", va="center", color="w")
+                        ha="center", va="center", color="w", weight="bold", size=20)
 
     fig.tight_layout()
     plt.show()
