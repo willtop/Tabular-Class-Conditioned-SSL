@@ -31,8 +31,8 @@ CORRELATED_FEATURES_RANDOMIZE_SAMPLING = True
 CORRELATED_FEATURES_RANDOMIZE_SAMPLING_TEMPERATURE = 0.25
 
 # Result processing metric
-# METRIC = "accuracy"
-METRIC = "auroc"
+METRIC = "accuracy"
+# METRIC = "auroc"
 
 XGB_FEATURECORR_CONFIG = {
     "n_estimators": 100, 
