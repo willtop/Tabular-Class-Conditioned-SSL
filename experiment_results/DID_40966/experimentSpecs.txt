@@ -1,0 +1,3 @@
+Experiment specs: Corruption rate: 0.4; Fraction of data labeled: 0.3; Number of seeds: 8; Contrastive learning epochs: 500; Supervised learning epochs: 100.
+Whether randomized sampling for correlated features sampling: True. Correlated features sampling softmax temperature: 0.2.
+MiceProtein (40966) with 8 cls, 77 feats (0 categorical), feature importance range 0.26

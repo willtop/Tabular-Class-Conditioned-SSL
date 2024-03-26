@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib
 import os
 from scipy.stats import ttest_ind
 from utils import *
@@ -123,7 +124,6 @@ if __name__ == "__main__":
         for j in range(len(METHODS_TO_COMPARE)):
             text = ax.text(j, i, f"{win_mat[i, j]*100:.1f}%",
                         ha="center", va="center", color="w", weight="bold", size=20)
-
     fig.tight_layout()
     plt.show()
 

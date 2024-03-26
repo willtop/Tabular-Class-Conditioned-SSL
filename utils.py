@@ -22,7 +22,7 @@ CLS_CORR_REFRESH_SAMPLER_PERIOD = 10
 FRACTION_LABELED = 0.3
 CORRUPTION_RATE = 0.4
 BATCH_SIZE = 256
-SEEDS = [614579, 336466, 974761, 450967, 743562, 843198, 502837, 328984, 127389, 236748]
+SEEDS = [614579, 336466, 974761, 450967, 743562, 843198, 502837, 328984]
 assert len(SEEDS) == len(set(SEEDS))
 # All the methods to experiment
 ALL_METHODS = ['no_pretrain', 'rand_corr-rand_feats', 'cls_corr-rand_feats', 'orc_corr-rand_feats', 'cls_corr-leastRela_feats', 'cls_corr-mostRela_feats']  
