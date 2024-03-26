@@ -1,3 +1,0 @@
-Experiment specs: Corruption rate: 0.4; Fraction of data labeled: 0.3; Number of seeds: 10; Contrastive learning epochs: 500; Supervised learning epochs: 100.
-Whether randomized sampling for correlated features sampling: True. Correlated features sampling softmax temperature: 0.25.
-eucalyptus (188) with 5 cls, 19 feats (5 categorical), feature importance range 0.39
