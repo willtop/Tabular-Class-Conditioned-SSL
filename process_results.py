@@ -101,7 +101,7 @@ if __name__ == "__main__":
     win_mat = np.divide(win_mat, win_mat_divisor)
 
     fig, ax = plt.subplots()
-    im = ax.imshow(win_mat)
+    im = ax.imshow(win_mat, cmap='autumn')
 
     ax.set_xticks(np.arange(len(METHODS_TO_COMPARE)))
     ax.set_yticks(np.arange(len(METHODS_TO_COMPARE)))
@@ -113,17 +113,19 @@ if __name__ == "__main__":
         assert len(METHODS_TO_COMPARE) == 3
         ax.set_xticklabels(['Conventional', 'Least Correlated Features', 'Most Correlated Features'])
         ax.set_yticklabels(['Conventional', 'Least Correlated Features', 'Most Correlated Features'])
-    ax.tick_params(axis='both', which='major', labelsize=15)
+    ax.tick_params(axis='both', which='major', labelsize=18)
 
     # Rotate the tick labels and set their alignment.
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+            rotation_mode="anchor")
+    plt.setp(ax.get_yticklabels(), rotation=45, ha="right",
             rotation_mode="anchor")
 
     # Loop over data dimensions and create text annotations.
     for i in range(len(METHODS_TO_COMPARE)):
         for j in range(len(METHODS_TO_COMPARE)):
             text = ax.text(j, i, f"{win_mat[i, j]*100:.1f}%",
-                        ha="center", va="center", color="w", weight="bold", size=20)
+                        ha="center", va="center", color="k", weight="bold", size=23)
     fig.tight_layout()
     plt.show()
 
