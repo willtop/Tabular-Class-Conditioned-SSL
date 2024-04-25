@@ -1,9 +1,7 @@
 import matplotlib.pyplot as plt
-import matplotlib
 import os
 from scipy.stats import ttest_ind
 from utils import *
-from tqdm import tqdm
 
 ALL_DIDS = [11, 14, 15, 16, 18, 22, 
             23, 29, 31, 37, 50, 54, 
@@ -96,12 +94,12 @@ if __name__ == "__main__":
       
 
     # process win matrices
-    print(f"Win matrix for {METRIC}: \n", win_mat)
     win_mat_divisor = win_mat + np.transpose(win_mat) + np.eye(len(METHODS_TO_COMPARE))
     win_mat = np.divide(win_mat, win_mat_divisor)
+    print(f"Win matrix for {METRIC}: \n", win_mat)
 
     fig, ax = plt.subplots()
-    im = ax.imshow(win_mat, cmap='autumn')
+    im = ax.imshow(win_mat, cmap='autumn', alpha=0.6)
 
     ax.set_xticks(np.arange(len(METHODS_TO_COMPARE)))
     ax.set_yticks(np.arange(len(METHODS_TO_COMPARE)))
