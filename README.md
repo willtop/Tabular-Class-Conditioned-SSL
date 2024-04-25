@@ -1,1 +1,13 @@
 # Tabular_SSL
+
+This repository contains the code base for our paper "Tabular Data Contrastive Learning via Class-Conditioned and Feature-Correlation Based Augmentation".
+
+For any reproduce, further research or development, please kindly cite our arXiv paper:
+<pre>
+@Article{ClsCondTabular, 
+    title = {Tabular Data Contrastive Learning via Class-Conditioned and Feature-Correlation Based Augmentation}, 
+    author = {Wei Cui and Rasa Hosseinzadeh and Junwei Ma and Tongzi Wu and Yi Sui and Keyvan Golestan}, 
+    journal = {arXiv preprint}", 
+    year = {2024}
+}
+</pre>
