@@ -1,6 +1,7 @@
-# Tabular_SSL
+# Tabular-Class-Conditioned-SSL
 
-This repository contains the code base for our paper "Tabular Data Contrastive Learning via Class-Conditioned and Feature-Correlation Based Augmentation".
+The code in this repository has been transferred to: https://github.com/layer6ai-labs/Tabular-Class-Conditioned-SSL.  
+The repository contains the code base for our paper "Tabular Data Contrastive Learning via Class-Conditioned and Feature-Correlation Based Augmentation".
 
 For any reproduce, further research or development, please kindly cite our arXiv paper:
 <pre>
